@@ -64,7 +64,7 @@ fun GameScreen(
                 DuelBanner(session)
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.weight(0.4f))
 
             SudokuBoard(
                 state = BoardState(
@@ -80,7 +80,7 @@ fun GameScreen(
                     .alpha(if (session.paused) 0f else 1f)
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.weight(0.8f))
 
             ActionRow(
                 pencil = session.pencil,
@@ -92,7 +92,7 @@ fun GameScreen(
                 onHint = onHint
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             NumberPad(
                 isExhausted = { session.isDigitExhausted(it) },
@@ -100,7 +100,7 @@ fun GameScreen(
                 modifier = Modifier.padding(horizontal = 10.dp)
             )
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.weight(0.7f))
         }
 
         if (session.paused && !session.finished) {

@@ -224,26 +224,36 @@ private fun DrawScope.drawContents(state: BoardState, cell: Float, paints: Board
             canvas.drawText(shown.toString(), x, y - (paint.ascent() + paint.descent()) / 2f, paint)
         } else {
             val notes = state.notes[c]
-            if (notes != 0) drawNotes(canvas, notes, colOf(c) * cell, rowOf(c) * cell, cell, paints)
+            if (notes != 0) {
+                val isAnchor = state.puzzle.cages[state.puzzle.cageOfCell[c]].anchor == c
+                drawNotes(canvas, notes, colOf(c) * cell, rowOf(c) * cell, cell, paints, isAnchor)
+            }
         }
     }
 }
 
+/**
+ * Dans la case qui porte la somme de sa cage, la première note viendrait se
+ * glisser sous ce nombre : on descend alors toute la grille des notes.
+ */
 private fun drawNotes(
     canvas: android.graphics.Canvas,
     notes: Int,
     left: Float,
     top: Float,
     cell: Float,
-    paints: BoardPaints
+    paints: BoardPaints,
+    avoidCageSum: Boolean
 ) {
-    val step = cell / 3f
-    paints.note.textSize = cell * 0.26f
+    val topInset = if (avoidCageSum) cell * 0.22f else 0f
+    val stepX = cell / 3f
+    val stepY = (cell - topInset) / 3f
+    paints.note.textSize = if (avoidCageSum) cell * 0.22f else cell * 0.26f
     for (d in 1..9) {
         if (!maskContains(notes, d)) continue
         val i = d - 1
-        val x = left + (i % 3) * step + step / 2f
-        val y = top + (i / 3) * step + step / 2f
+        val x = left + (i % 3) * stepX + stepX / 2f
+        val y = top + topInset + (i / 3) * stepY + stepY / 2f
         canvas.drawText(
             d.toString(), x,
             y - (paints.note.ascent() + paints.note.descent()) / 2f,

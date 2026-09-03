@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- La barre de navigation claire n'existe qu'à partir d'Android 8.1. -->
     <style name="Theme.KillerDuel" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">#F4F4F2</item>
         <item name="android:navigationBarColor">#F4F4F2</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>
