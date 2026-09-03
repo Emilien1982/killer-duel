@@ -99,7 +99,7 @@ fun StatsScreen(
                             if (row.completed == 0) "—" else formatDuration(row.bestMillis),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Palette.Accent
+                            color = if (row.completed == 0) Palette.TextMuted else Palette.Accent
                         )
                         Text(
                             "${row.completed} terminée${if (row.completed > 1) "s" else ""} sur ${row.played}",

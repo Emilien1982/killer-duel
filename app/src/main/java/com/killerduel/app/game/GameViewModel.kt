@@ -121,7 +121,8 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                 _state.value = _state.value.copy(matchmakingProgress = (i + 1f) / steps)
             }
 
-            repository.recordGameStarted(difficulty)
+            // Les statistiques par niveau ne comptent que l'entraînement ;
+            // les duels ont leur propre bilan.
             repository.saveInProgress(null)
             _state.value = _state.value.copy(
                 screen = Screen.Game,
