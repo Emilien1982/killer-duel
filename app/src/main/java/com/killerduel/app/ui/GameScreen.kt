@@ -54,7 +54,9 @@ fun GameScreen(
                 title = if (session.mode == GameMode.DUEL) "Défi" else "Entraînement",
                 onBack = onBack,
                 onPause = onPause,
-                pauseEnabled = !session.finished
+                // Mettre un duel en pause figerait aussi l'adversaire : seul
+                // l'entraînement s'interrompt.
+                pauseEnabled = !session.finished && session.mode == GameMode.TRAINING
             )
 
             InfoRow(session)
