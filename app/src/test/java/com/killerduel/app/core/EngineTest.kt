@@ -92,6 +92,33 @@ class EngineTest {
         }
     }
 
+    @Test
+    fun `neighbouring cages never share a tint`() {
+        for (difficulty in Difficulty.entries) {
+            val puzzle = PuzzleGenerator.generate(difficulty, seed = 606L)
+            val tints = puzzle.cageTints
+            assertTrue("toutes les cages doivent être teintées", tints.all { it >= 0 })
+
+            for (cell in 0 until 81) {
+                for (next in ADJACENT[cell]) {
+                    val a = puzzle.cageOfCell[cell]
+                    val b = puzzle.cageOfCell[next]
+                    if (a != b) {
+                        assertTrue(
+                            "$difficulty : cages voisines de même teinte",
+                            tints[a] != tints[b]
+                        )
+                    }
+                }
+            }
+            // Au-delà d'une poignée de teintes, la grille virerait au bariolage.
+            assertTrue(
+                "$difficulty : ${tints.max() + 1} teintes, c'est trop",
+                tints.max() + 1 <= 6
+            )
+        }
+    }
+
     private fun assertCoversGrid(puzzle: Puzzle) {
         val seen = IntArray(81)
         puzzle.cages.forEach { cage -> cage.cells.forEach { seen[it]++ } }

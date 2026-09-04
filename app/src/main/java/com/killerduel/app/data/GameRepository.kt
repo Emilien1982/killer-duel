@@ -13,13 +13,10 @@ interface GameRepository {
 
     val duelStats: Flow<DuelStats>
 
-    /**
-     * Préférence de saisie « chiffre d'abord ». Ce n'est pas un réglage à
-     * configurer : c'est l'interrupteur de l'écran de jeu, qui se souvient.
-     */
-    val digitFirst: Flow<Boolean>
+    /** Préférences de jeu, appliquées à toute nouvelle partie comme à l'affichage. */
+    val settings: Flow<GameSettings>
 
-    suspend fun setDigitFirst(enabled: Boolean)
+    suspend fun updateSettings(transform: (GameSettings) -> GameSettings)
 
     /** Enregistre une partie d'entraînement terminée et met à jour les statistiques. */
     suspend fun recordTrainingSession(session: RecordedSession)

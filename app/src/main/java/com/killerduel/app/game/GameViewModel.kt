@@ -7,6 +7,7 @@ import com.killerduel.app.core.Difficulty
 import com.killerduel.app.core.PuzzleGenerator
 import com.killerduel.app.data.GameMode
 import com.killerduel.app.data.GameRepository
+import com.killerduel.app.data.GameSettings
 import com.killerduel.app.data.RecordedSession
 import com.killerduel.app.data.SavedGame
 import com.killerduel.app.opponent.OpponentPicker
@@ -46,10 +47,11 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                 }
         }
         viewModelScope.launch {
-            repository.digitFirst.collect { enabled ->
+            repository.settings.collect { settings ->
+                val session = _state.value.session
                 _state.value = _state.value.copy(
-                    digitFirst = enabled,
-                    session = _state.value.session?.copy(digitFirst = enabled)
+                    settings = settings,
+                    session = session?.withSettings(settings)
                 )
             }
         }
@@ -119,7 +121,7 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                 session = GameSession(
                     puzzle = puzzle,
                     mode = GameMode.TRAINING,
-                    digitFirst = _state.value.digitFirst
+                    settings = _state.value.settings
                 )
             )
             startTicker()
@@ -163,7 +165,7 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                     puzzle = puzzle,
                     mode = GameMode.DUEL,
                     opponent = plan,
-                    digitFirst = _state.value.digitFirst
+                    settings = _state.value.settings
                 )
             )
             startTicker()
@@ -186,7 +188,7 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                 session = GameSession(
                     puzzle = saved.puzzle,
                     mode = saved.mode,
-                    digitFirst = _state.value.digitFirst,
+                    settings = _state.value.settings,
                     entries = saved.entries,
                     notes = saved.notes,
                     mistakes = saved.mistakes,
@@ -208,10 +210,22 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
 
     fun enterDigit(digit: Int) = mutate { withKeyPress(digit) }
 
-    fun toggleDigitFirst() {
-        val enabled = !_state.value.digitFirst
-        viewModelScope.launch { repository.setDigitFirst(enabled) }
-        mutate { withDigitFirstToggled() }
+    /** Modifie un réglage ; la persistance renvoie la valeur qui met l'état à jour. */
+    fun updateSettings(transform: (GameSettings) -> GameSettings) {
+        viewModelScope.launch { repository.updateSettings(transform) }
+    }
+
+    fun toggleDigitFirst() = updateSettings { it.copy(digitFirst = !it.digitFirst) }
+
+    fun openSettings() {
+        _state.value = _state.value.copy(screen = Screen.Settings)
+    }
+
+    /** Fermer les réglages ramène à la partie quand il y en a une en cours. */
+    fun closeSettings() {
+        val session = _state.value.session
+        val destination = if (session != null && !session.finished) Screen.Game else Screen.Home
+        _state.value = _state.value.copy(screen = destination)
     }
 
     fun erase() = mutate { withErase() }

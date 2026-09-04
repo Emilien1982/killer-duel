@@ -46,6 +46,34 @@ data class Puzzle(
         map
     }
 
+    /**
+     * Une teinte par cage, choisie pour que deux cages voisines n'aient jamais
+     * la même. Coloration gloutonne dans l'ordre des degrés décroissants
+     * (Welsh-Powell) : sur une grille de sudoku elle tient en quatre ou cinq
+     * couleurs, là où un parcours naïf en demanderait davantage.
+     */
+    val cageTints: IntArray by lazy {
+        val neighbours = Array(cages.size) { mutableSetOf<Int>() }
+        for (cell in 0 until CELLS) {
+            val here = cageOfCell[cell]
+            for (next in ADJACENT[cell]) {
+                val there = cageOfCell[next]
+                if (there != here) {
+                    neighbours[here].add(there)
+                    neighbours[there].add(here)
+                }
+            }
+        }
+
+        val tints = IntArray(cages.size) { -1 }
+        val order = cages.indices.sortedByDescending { neighbours[it].size }
+        for (cage in order) {
+            val taken = neighbours[cage].mapNotNull { tints[it].takeIf { t -> t >= 0 } }.toSet()
+            tints[cage] = generateSequence(0) { it + 1 }.first { it !in taken }
+        }
+        tints
+    }
+
     companion object {
         const val N = 9
         const val CELLS = 81

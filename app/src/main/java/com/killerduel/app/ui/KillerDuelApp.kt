@@ -17,7 +17,9 @@ import com.killerduel.app.game.Screen
 fun KillerDuelApp(viewModel: GameViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    BackHandler(enabled = state.screen != Screen.Home) { viewModel.back() }
+    BackHandler(enabled = state.screen != Screen.Home) {
+        if (state.screen == Screen.Settings) viewModel.closeSettings() else viewModel.back()
+    }
 
     AnimatedContent(
         targetState = state.screen,
@@ -65,9 +67,16 @@ fun KillerDuelApp(viewModel: GameViewModel) {
                     onPause = viewModel::pause,
                     onResume = viewModel::resume,
                     onToggleDigitFirst = viewModel::toggleDigitFirst,
+                    onSettings = viewModel::openSettings,
                     onReplay = viewModel::replay
                 )
             }
+
+            Screen.Settings -> SettingsScreen(
+                settings = state.settings,
+                onBack = viewModel::closeSettings,
+                onChange = { updated -> viewModel.updateSettings { updated } }
+            )
 
             Screen.Stats -> StatsScreen(
                 stats = state.stats,

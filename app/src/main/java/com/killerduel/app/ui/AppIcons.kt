@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
  * Les quelques pictogrammes du jeu, tracés à la main : six icônes ne justifient
  * pas d'embarquer une bibliothèque entière, et le trait reste raccord avec la grille.
  */
-enum class AppIcon { Back, Pause, Play, Undo, Erase, Pencil, Hint, Trophy, Stats }
+enum class AppIcon { Back, Pause, Play, Undo, Erase, Pencil, Hint, Trophy, Stats, Settings }
 
 @Composable
 fun AppIconView(
@@ -43,6 +43,7 @@ fun AppIconView(
             AppIcon.Hint -> drawHint(tint, s, stroke)
             AppIcon.Trophy -> drawTrophy(tint, s, stroke)
             AppIcon.Stats -> drawStats(tint, s)
+            AppIcon.Settings -> drawSettings(tint, s, stroke)
         }
     }
 }
@@ -162,6 +163,17 @@ private fun DrawScope.drawTrophy(tint: Color, s: Float, stroke: Stroke) {
         tint, Offset(s * 0.3f, s * 0.71f), Size(s * 0.4f, s * 0.11f),
         androidx.compose.ui.geometry.CornerRadius(s * 0.03f)
     )
+}
+
+private fun DrawScope.drawSettings(tint: Color, s: Float, stroke: Stroke) {
+    drawCircle(tint, radius = s * 0.30f, center = Offset(s / 2f, s / 2f), style = stroke)
+    drawCircle(tint, radius = s * 0.09f, center = Offset(s / 2f, s / 2f))
+    for (i in 0 until 6) {
+        val angle = Math.toRadians(i * 60.0)
+        val cx = s / 2f + (s * 0.30f) * kotlin.math.cos(angle).toFloat()
+        val cy = s / 2f + (s * 0.30f) * kotlin.math.sin(angle).toFloat()
+        drawCircle(tint, radius = s * 0.055f, center = Offset(cx, cy))
+    }
 }
 
 private fun DrawScope.drawStats(tint: Color, s: Float) {

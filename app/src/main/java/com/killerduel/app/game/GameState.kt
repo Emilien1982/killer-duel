@@ -5,6 +5,7 @@ import com.killerduel.app.core.Puzzle
 import com.killerduel.app.core.bit
 import com.killerduel.app.core.maskContains
 import com.killerduel.app.data.DifficultyStats
+import com.killerduel.app.data.GameSettings
 import com.killerduel.app.data.DuelStats
 import com.killerduel.app.data.GameMode
 import com.killerduel.app.data.RecordedMove
@@ -17,6 +18,7 @@ sealed interface Screen {
     data class Matchmaking(val difficulty: Difficulty) : Screen
     data object Game : Screen
     data object Stats : Screen
+    data object Settings : Screen
 }
 
 /** Issue d'une partie. */
@@ -37,8 +39,8 @@ data class GameSession(
     val notes: List<Int> = List(81) { 0 },
     val selected: Int = -1,
     val pencil: Boolean = false,
-    /** Mode « chiffre d'abord » : on choisit un chiffre, puis on remplit les cases. */
-    val digitFirst: Boolean = false,
+    /** Réglages en vigueur pour cette partie. */
+    val settings: GameSettings = GameSettings(),
     /** Chiffre armé en mode « chiffre d'abord », 0 si aucun. */
     val activeDigit: Int = 0,
     val mistakes: Int = 0,
@@ -63,11 +65,13 @@ data class GameSession(
         get() = opponent?.let { it.filledAt(elapsedMillis) + puzzle.givens.count { g -> g != 0 } } ?: 0
 
     /**
-     * Un chiffre correctement placé neuf fois n'a plus à être proposé. Les
-     * chiffres faux ne comptent pas : ils condamneraient une touche encore utile.
+     * Combien d'exemplaires d'un chiffre restent à placer. Les chiffres faux ne
+     * comptent pas : ils condamneraient une touche encore utile.
      */
-    fun isDigitExhausted(digit: Int): Boolean =
-        (0 until 81).count { valueAt(it) == digit && puzzle.solution[it] == digit } >= 9
+    fun remainingCount(digit: Int): Int =
+        9 - (0 until 81).count { valueAt(it) == digit && puzzle.solution[it] == digit }
+
+    fun isDigitExhausted(digit: Int): Boolean = remainingCount(digit) <= 0
 
     fun valueAt(cell: Int): Int =
         if (puzzle.givens[cell] != 0) puzzle.givens[cell] else entries[cell]
@@ -93,7 +97,7 @@ data class AppState(
     val stats: Map<Difficulty, DifficultyStats> = emptyMap(),
     val duelStats: DuelStats = DuelStats(),
     val hasSavedGame: Boolean = false,
-    val digitFirst: Boolean = false,
+    val settings: GameSettings = GameSettings(),
     val generating: Boolean = false,
     val matchmakingProgress: Float = 0f
 )
@@ -125,7 +129,7 @@ fun GameSession.withDigit(digit: Int): GameSession {
     val updatedMistakes = if (correct) mistakes else mistakes + 1
 
     // Placer un chiffre juste retire la note correspondante chez les voisines.
-    if (correct) {
+    if (correct && settings.autoClearNotes) {
         for (peer in com.killerduel.app.core.PEERS[cell]) {
             if (maskContains(updatedNotes[peer], digit)) {
                 updatedNotes[peer] = updatedNotes[peer] xor bit(digit)
@@ -202,7 +206,7 @@ fun GameSession.withHint(): GameSession {
  */
 fun GameSession.withKeyPress(digit: Int): GameSession {
     if (finished || paused) return this
-    if (!digitFirst) return withDigit(digit)
+    if (!settings.digitFirst) return withDigit(digit)
     return copy(activeDigit = if (activeDigit == digit) 0 else digit)
 }
 
@@ -213,18 +217,22 @@ fun GameSession.withKeyPress(digit: Int): GameSession {
 fun GameSession.withCellPress(cell: Int): GameSession {
     if (cell !in 0..80) return this
     val selectedSession = copy(selected = cell)
-    if (!digitFirst || activeDigit == 0 || finished || paused) return selectedSession
+    if (!settings.digitFirst || activeDigit == 0 || finished || paused) return selectedSession
     return selectedSession.withDigit(activeDigit)
 }
 
-/** Bascule le mode « chiffre d'abord » ; le chiffre armé ne survit pas au passage. */
-fun GameSession.withDigitFirstToggled(): GameSession =
-    copy(digitFirst = !digitFirst, activeDigit = 0)
+/** Applique de nouveaux réglages ; un changement de mode désarme le chiffre. */
+fun GameSession.withSettings(updated: GameSettings): GameSession =
+    copy(
+        settings = updated,
+        activeDigit = if (updated.digitFirst) activeDigit else 0
+    ).let { if (updated.mistakesLimit) it.withCompletionCheck() else it }
 
 /** Applique les fins de partie : grille terminée ou trop d'erreurs. */
 fun GameSession.withCompletionCheck(): GameSession = when {
     solved -> copy(outcome = Outcome.WON, selected = -1)
-    mistakes >= GameSession.MAX_MISTAKES -> copy(outcome = Outcome.LOST_ON_MISTAKES)
+    settings.mistakesLimit && mistakes >= GameSession.MAX_MISTAKES ->
+        copy(outcome = Outcome.LOST_ON_MISTAKES)
     else -> this
 }
 

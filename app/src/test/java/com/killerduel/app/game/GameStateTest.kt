@@ -5,6 +5,7 @@ import com.killerduel.app.core.PuzzleGenerator
 import com.killerduel.app.core.bit
 import com.killerduel.app.core.maskContains
 import com.killerduel.app.data.GameMode
+import com.killerduel.app.data.GameSettings
 import com.killerduel.app.opponent.SyntheticOpponentEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,6 +20,8 @@ class GameStateTest {
     private val base = GameSession(puzzle = puzzle, mode = GameMode.TRAINING)
 
     private fun sessionOn(cell: Int) = base.copy(selected = cell)
+
+    private val digitFirstOn = GameSettings(digitFirst = true)
 
     @Test
     fun `placing the right digit records a move and no mistake`() {
@@ -173,7 +176,7 @@ class GameStateTest {
 
     @Test
     fun `digit first arms a digit instead of writing it`() {
-        val session = base.copy(digitFirst = true, selected = firstEmpty)
+        val session = base.copy(settings = digitFirstOn, selected = firstEmpty)
         val armed = session.withKeyPress(7)
 
         assertEquals(7, armed.activeDigit)
@@ -190,7 +193,7 @@ class GameStateTest {
         val target = puzzle.givens.indices.last { puzzle.givens[it] == 0 }
         val correct = puzzle.solution[target]
 
-        val session = base.copy(digitFirst = true).withKeyPress(correct)
+        val session = base.copy(settings = digitFirstOn).withKeyPress(correct)
         val filled = session.withCellPress(target)
 
         assertEquals(target, filled.selected)
@@ -200,7 +203,7 @@ class GameStateTest {
 
     @Test
     fun `touching a cell only selects it when no digit is armed`() {
-        val session = base.copy(digitFirst = true).withCellPress(firstEmpty)
+        val session = base.copy(settings = digitFirstOn).withCellPress(firstEmpty)
         assertEquals(firstEmpty, session.selected)
         assertEquals(0, session.entries[firstEmpty])
     }
@@ -211,7 +214,7 @@ class GameStateTest {
         val other = (1..9).first { it != correct }
 
         val solved = sessionOn(firstEmpty).withDigit(correct)
-        val armed = solved.copy(digitFirst = true).withKeyPress(other)
+        val armed = solved.copy(settings = digitFirstOn).withKeyPress(other)
         val touched = armed.withCellPress(firstEmpty)
 
         assertEquals(correct, touched.entries[firstEmpty])
@@ -220,9 +223,9 @@ class GameStateTest {
 
     @Test
     fun `leaving digit first mode disarms the digit`() {
-        val armed = base.copy(digitFirst = true).withKeyPress(5)
-        val off = armed.withDigitFirstToggled()
-        assertFalse(off.digitFirst)
+        val armed = base.copy(settings = digitFirstOn).withKeyPress(5)
+        val off = armed.withSettings(GameSettings(digitFirst = false))
+        assertFalse(off.settings.digitFirst)
         assertEquals(0, off.activeDigit)
 
         // Hors du mode, la touche écrit directement dans la case choisie.

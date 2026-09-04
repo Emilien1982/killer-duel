@@ -51,6 +51,7 @@ fun GameScreen(
     onPause: () -> Unit,
     onResume: () -> Unit,
     onToggleDigitFirst: () -> Unit,
+    onSettings: () -> Unit,
     onReplay: () -> Unit
 ) {
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
@@ -59,6 +60,7 @@ fun GameScreen(
                 title = if (session.mode == GameMode.DUEL) "Défi" else "Entraînement",
                 onBack = onBack,
                 onPause = onPause,
+                onSettings = onSettings,
                 // Mettre un duel en pause figerait aussi l'adversaire : seul
                 // l'entraînement s'interrompt.
                 pauseEnabled = !session.finished && session.mode == GameMode.TRAINING
@@ -79,7 +81,9 @@ fun GameScreen(
                     entries = session.entries,
                     notes = session.notes,
                     selected = session.selected,
-                    wrongCells = session.wrongCells
+                    wrongCells = session.wrongCells,
+                    settings = session.settings,
+                    activeDigit = session.activeDigit
                 ),
                 onCellTap = onCell,
                 modifier = Modifier
@@ -102,7 +106,8 @@ fun GameScreen(
             Spacer(Modifier.height(14.dp))
 
             NumberPad(
-                isExhausted = { session.isDigitExhausted(it) },
+                remaining = { session.remainingCount(it) },
+                showCounts = session.settings.showRemainingCounts,
                 activeDigit = session.activeDigit,
                 onDigit = onDigit,
                 modifier = Modifier.padding(horizontal = 10.dp)
@@ -110,7 +115,7 @@ fun GameScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            DigitFirstSwitch(checked = session.digitFirst, onToggle = onToggleDigitFirst)
+            DigitFirstSwitch(checked = session.settings.digitFirst, onToggle = onToggleDigitFirst)
 
             Spacer(Modifier.weight(0.7f))
         }
@@ -129,6 +134,7 @@ private fun GameTopBar(
     title: String,
     onBack: () -> Unit,
     onPause: () -> Unit,
+    onSettings: () -> Unit,
     pauseEnabled: Boolean
 ) {
     Row(
@@ -143,6 +149,7 @@ private fun GameTopBar(
             modifier = Modifier.weight(1f).padding(start = 4.dp)
         )
         if (pauseEnabled) IconButton(AppIcon.Pause, onPause)
+        IconButton(AppIcon.Settings, onSettings)
     }
 }
 
@@ -163,13 +170,17 @@ private fun InfoRow(session: GameSession) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            "Erreurs ${session.mistakes}/${GameSession.MAX_MISTAKES}",
+            if (session.settings.mistakesLimit) {
+                "Erreurs ${session.mistakes}/${GameSession.MAX_MISTAKES}"
+            } else {
+                "Erreurs ${session.mistakes}"
+            },
             color = if (session.mistakes > 0) Palette.Error else Palette.TextMuted,
             fontSize = 13.sp
         )
         Text(session.puzzle.difficulty.label, color = Palette.TextMuted, fontSize = 13.sp)
         Text(
-            formatDuration(session.elapsedMillis),
+            if (session.settings.showTimer) formatDuration(session.elapsedMillis) else "",
             color = Palette.TextMuted,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
@@ -313,21 +324,28 @@ private fun ActionButton(
     }
 }
 
+/**
+ * Le pavé porte sous chaque touche le nombre d'exemplaires restant à placer,
+ * comme dans les jeux du genre : c'est l'information qui évite de recompter
+ * la grille à chaque hésitation.
+ */
 @Composable
 private fun NumberPad(
-    isExhausted: (Int) -> Boolean,
+    remaining: (Int) -> Int,
+    showCounts: Boolean,
     activeDigit: Int,
     onDigit: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (digit in 1..9) {
-            val done = isExhausted(digit)
+            val left = remaining(digit)
+            val done = left <= 0
             val armed = digit == activeDigit
             Surface(
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp)
+                    .height(if (showCounts) 62.dp else 56.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .clickable(enabled = !done) { onDigit(digit) },
                 color = when {
@@ -338,7 +356,11 @@ private fun NumberPad(
                 shadowElevation = if (done) 0.dp else 2.dp,
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(
                         digit.toString(),
                         fontSize = 26.sp,
@@ -349,6 +371,13 @@ private fun NumberPad(
                             else -> Palette.Entry
                         }
                     )
+                    if (showCounts && !done) {
+                        Text(
+                            left.toString(),
+                            fontSize = 11.sp,
+                            color = if (armed) Color.White.copy(alpha = 0.85f) else Palette.TextMuted
+                        )
+                    }
                 }
             }
         }
