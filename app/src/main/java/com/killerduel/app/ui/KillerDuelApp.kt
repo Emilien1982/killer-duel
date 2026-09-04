@@ -31,6 +31,8 @@ fun KillerDuelApp(viewModel: GameViewModel) {
             Screen.Home -> HomeScreen(
                 duelStats = state.duelStats,
                 hasSavedGame = state.hasSavedGame,
+                dailyDone = GameViewModel.today() in state.dailyWins,
+                onDaily = viewModel::startDaily,
                 onTraining = { viewModel.openLevelPicker(GameMode.TRAINING) },
                 onDuel = { viewModel.openLevelPicker(GameMode.DUEL) },
                 onResume = viewModel::resumeSavedGame,

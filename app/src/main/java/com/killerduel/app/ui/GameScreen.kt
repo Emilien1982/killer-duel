@@ -57,7 +57,11 @@ fun GameScreen(
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
         Column(Modifier.fillMaxSize()) {
             GameTopBar(
-                title = if (session.mode == GameMode.DUEL) "Défi" else "Entraînement",
+                title = when {
+                    session.mode == GameMode.DUEL -> "Duel"
+                    session.dailyDate != null -> "Défi du jour"
+                    else -> "Entraînement"
+                },
                 onBack = onBack,
                 onPause = onPause,
                 onSettings = onSettings,

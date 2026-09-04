@@ -234,6 +234,37 @@ class GameStateTest {
     }
 
     @Test
+    fun `the daily seed is stable and unique per date`() {
+        assertEquals(
+            com.killerduel.app.game.GameViewModel.seedForDate("2026-09-04"),
+            com.killerduel.app.game.GameViewModel.seedForDate("2026-09-04")
+        )
+        assertTrue(
+            com.killerduel.app.game.GameViewModel.seedForDate("2026-09-04") !=
+                com.killerduel.app.game.GameViewModel.seedForDate("2026-09-05")
+        )
+
+        // Deux jours différents doivent donner deux grilles différentes.
+        val a = com.killerduel.app.core.PuzzleGenerator.generate(
+            Difficulty.MEDIUM,
+            com.killerduel.app.game.GameViewModel.seedForDate("2026-09-04")
+        )
+        val b = com.killerduel.app.core.PuzzleGenerator.generate(
+            Difficulty.MEDIUM,
+            com.killerduel.app.game.GameViewModel.seedForDate("2026-09-05")
+        )
+        assertTrue(a.solution != b.solution)
+
+        // Et la même date doit rendre exactement la même grille.
+        val again = com.killerduel.app.core.PuzzleGenerator.generate(
+            Difficulty.MEDIUM,
+            com.killerduel.app.game.GameViewModel.seedForDate("2026-09-04")
+        )
+        assertEquals(a.solution, again.solution)
+        assertEquals(a.givens, again.givens)
+    }
+
+    @Test
     fun `a finished game ignores further input`() {
         val finished = base.copy(selected = firstEmpty, outcome = Outcome.WON)
         assertEquals(finished.entries, finished.withDigit(1).entries)

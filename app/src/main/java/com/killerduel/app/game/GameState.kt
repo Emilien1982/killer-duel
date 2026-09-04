@@ -51,6 +51,8 @@ data class GameSession(
     val history: List<Snapshot> = emptyList(),
     val moveLog: List<RecordedMove> = emptyList(),
     val opponent: OpponentPlan? = null,
+    /** Date du défi du jour quand la partie en est un, sinon null. */
+    val dailyDate: String? = null,
     val outcome: Outcome? = null
 ) {
     val finished: Boolean get() = outcome != null
@@ -98,6 +100,7 @@ data class AppState(
     val duelStats: DuelStats = DuelStats(),
     val hasSavedGame: Boolean = false,
     val settings: GameSettings = GameSettings(),
+    val dailyWins: Set<String> = emptySet(),
     val generating: Boolean = false,
     val matchmakingProgress: Float = 0f
 )

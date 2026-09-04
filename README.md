@@ -4,7 +4,10 @@ Jeu de **Killer Sudoku** pour Android, avec deux modes : entraînement en solo e
 duel contre un adversaire. Clone d'apprentissage inspiré du Killer Sudoku
 d'Oakever Games pour son langage visuel et ses réglages de difficulté.
 
-## Les deux modes
+## Les trois façons de jouer
+
+**Défi du jour** — une grille par date, la même à chaque ouverture puisque sa
+graine *est* la date. Les jours résolus sont conservés.
 
 **Entraînement** — vous choisissez le niveau (Facile, Moyen, Difficile, Killer)
 et vous prenez votre temps. Chaque partie terminée est enregistrée avec son
@@ -12,6 +15,33 @@ déroulé complet.
 
 **Duel** — même grille pour vous et pour l'adversaire, le premier qui la remplit
 gagne. Quitter en cours de route vaut forfait.
+
+## Ce qui vient du jeu de référence, et ce qui s'en écarte
+
+L'application d'Oakever Games a été installée puis étudiée sur émulateur. Elle
+a confirmé deux choix faits auparavant à l'aveugle : ses quatre niveaux sont
+bien Facile / Moyen / Difficile / Killer, et son niveau Killer est annoncé
+« No Pre-filled Numbers ».
+
+En sont repris : la pastille de fond sur les notes portant le chiffre mis en
+avant, le compteur de chiffres restants sous chaque touche, et l'essentiel des
+réglages.
+
+Le principal écart est assumé : **les cages sont distinguées par la couleur, pas
+par des pointillés**, que nous trouvons peu lisibles. Une coloration de graphe
+(Welsh-Powell sur l'adjacence des cages) garantit que deux cages voisines ne
+partagent jamais une teinte, en cinq couleurs au plus, et les surlignages se
+posent *sur* la teinte au lieu de la remplacer.
+
+Volontairement absents : duel en ligne réel, saisons, classements, tickets,
+événement du moment, publicité et son écran de consentement, sons et
+notifications.
+
+## Réglages
+
+Chronomètre · limite d'erreurs · chiffre d'abord · chiffres restants · cages
+colorées · surlignage de la région · surlignage des chiffres identiques ·
+effacement automatique des notes · thème (clair, crème, sombre).
 
 ## Saisie
 
@@ -69,7 +99,7 @@ game/       état et règles
   GameViewModel  horloge, navigation, effets de bord
 
 data/       persistance DataStore + JSON
-ui/         Compose : grille au Canvas, écrans, thème
+ui/         Compose : grille au Canvas, écrans, thèmes
 ```
 
 ### Le solveur

@@ -31,6 +31,8 @@ import com.killerduel.app.ui.theme.Palette
 fun HomeScreen(
     duelStats: DuelStats,
     hasSavedGame: Boolean,
+    dailyDone: Boolean,
+    onDaily: () -> Unit,
     onTraining: () -> Unit,
     onDuel: () -> Unit,
     onResume: () -> Unit,
@@ -67,6 +69,9 @@ fun HomeScreen(
 
         Spacer(Modifier.height(36.dp))
 
+        DailyCard(done = dailyDone, onClick = onDaily)
+        Spacer(Modifier.height(12.dp))
+
         if (hasSavedGame) {
             ModeCard(
                 title = "Reprendre",
@@ -87,7 +92,7 @@ fun HomeScreen(
         )
         Spacer(Modifier.height(12.dp))
         ModeCard(
-            title = "Défi",
+            title = "Duel",
             subtitle = duelSubtitle(duelStats),
             accent = Palette.Gold,
             icon = AppIcon.Trophy,
@@ -111,6 +116,59 @@ fun HomeScreen(
         }
         Spacer(Modifier.height(16.dp))
     }
+}
+
+/**
+ * Le défi du jour : une grille par date, la même à chaque ouverture. Une fois
+ * résolue, la carte le dit plutôt que de disparaître — revenir dessus reste
+ * possible, cela ne change simplement plus rien.
+ */
+@Composable
+private fun DailyCard(done: Boolean, onClick: () -> Unit) {
+    val accent = if (done) Palette.Success else Palette.Gold
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick),
+        color = Palette.Surface,
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, if (done) accent.copy(alpha = 0.4f) else Palette.Divider),
+        shadowElevation = 1.dp
+    ) {
+        Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                AppIconView(AppIcon.Calendar, accent, size = 24.dp)
+            }
+            Spacer(Modifier.size(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Défi du jour",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Palette.TextPrimary
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    if (done) "Résolu — ${todayLabel()}" else todayLabel(),
+                    fontSize = 13.sp,
+                    color = if (done) accent else Palette.TextMuted
+                )
+            }
+        }
+    }
+}
+
+private fun todayLabel(): String {
+    val today = java.time.LocalDate.now()
+    val month = java.time.format.TextStyle.FULL
+    return "${today.dayOfMonth} ${today.month.getDisplayName(month, java.util.Locale.FRANCE)}"
 }
 
 private fun duelSubtitle(stats: DuelStats): String = when {

@@ -56,6 +56,11 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
             }
         }
         viewModelScope.launch {
+            repository.dailyWins.collect { wins ->
+                _state.value = _state.value.copy(dailyWins = wins)
+            }
+        }
+        viewModelScope.launch {
             _state.value = _state.value.copy(hasSavedGame = repository.loadInProgress() != null)
         }
     }
@@ -172,11 +177,43 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
         }
     }
 
+    /**
+     * Défi du jour : une seule grille pour la journée, la même à chaque
+     * ouverture puisque sa graine est la date elle-même.
+     */
+    fun startDaily() {
+        cancelPending()
+        val date = today()
+        startJob = viewModelScope.launch {
+            _state.value = _state.value.copy(generating = true, screen = Screen.LevelPicker(GameMode.TRAINING))
+            val puzzle = withContext(Dispatchers.Default) {
+                PuzzleGenerator.generate(DAILY_DIFFICULTY, seed = seedForDate(date))
+            }
+            repository.saveInProgress(null)
+            _state.value = _state.value.copy(
+                screen = Screen.Game,
+                generating = false,
+                hasSavedGame = false,
+                session = GameSession(
+                    puzzle = puzzle,
+                    mode = GameMode.TRAINING,
+                    settings = _state.value.settings,
+                    dailyDate = date
+                )
+            )
+            startTicker()
+        }
+    }
+
     /** Relance une partie identique en mode et en niveau. */
     fun replay() {
         val session = _state.value.session ?: return
         val difficulty = session.puzzle.difficulty
-        if (session.mode == GameMode.DUEL) startDuel(difficulty) else startTraining(difficulty)
+        when {
+            session.dailyDate != null -> startDaily()
+            session.mode == GameMode.DUEL -> startDuel(difficulty)
+            else -> startTraining(difficulty)
+        }
     }
 
     fun resumeSavedGame() {
@@ -325,6 +362,9 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
             }
             // Seules les parties d'entraînement menées à leur terme alimentent
             // l'historique : ce sont elles qui fourniront les futurs adversaires.
+            if (session.dailyDate != null && session.outcome == Outcome.WON) {
+                repository.recordDailyWin(session.dailyDate)
+            }
             if (session.mode == GameMode.TRAINING && session.outcome == Outcome.WON) {
                 repository.recordTrainingSession(
                     RecordedSession(
@@ -369,6 +409,14 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
     }
 
     companion object {
+        /** Le défi du jour reste au niveau moyen : il doit rester jouable chaque jour. */
+        private val DAILY_DIFFICULTY = Difficulty.MEDIUM
+
+        fun today(): String = java.time.LocalDate.now().toString()
+
+        /** La graine dérive de la date : tout le monde reçoit la même grille. */
+        fun seedForDate(date: String): Long = date.replace("-", "").toLong()
+
         private const val TICK_MILLIS = 250L
         private const val MATCHMAKING_MILLIS = 2_400L
         private const val MATCHMAKING_STEPS = 20

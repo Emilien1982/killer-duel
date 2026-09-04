@@ -34,6 +34,8 @@ class ReplayLoopTest {
         override suspend fun updateSettings(
             transform: (com.killerduel.app.data.GameSettings) -> com.killerduel.app.data.GameSettings
         ) {}
+        override val dailyWins: Flow<Set<String>> = MutableStateFlow(emptySet())
+        override suspend fun recordDailyWin(date: String) {}
         override suspend fun recordTrainingSession(session: RecordedSession) { sessions += session }
         override suspend fun recordGameStarted(difficulty: Difficulty) {}
         override suspend fun recordDuel(won: Boolean) {}

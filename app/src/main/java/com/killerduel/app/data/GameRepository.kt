@@ -18,6 +18,11 @@ interface GameRepository {
 
     suspend fun updateSettings(transform: (GameSettings) -> GameSettings)
 
+    /** Dates (AAAA-MM-JJ) dont le défi du jour a été résolu. */
+    val dailyWins: Flow<Set<String>>
+
+    suspend fun recordDailyWin(date: String)
+
     /** Enregistre une partie d'entraînement terminée et met à jour les statistiques. */
     suspend fun recordTrainingSession(session: RecordedSession)
 

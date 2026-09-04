@@ -48,3 +48,9 @@ L'identifiant applicatif en debug porte le suffixe `.debug` :
 - Les transformations de `GameState.kt` sont **pures** : les tester là plutôt
   qu'au travers du ViewModel.
 - Les commentaires expliquent **pourquoi**, jamais ce que le code dit déjà.
+- **Les couleurs passent par `Palette`**, une propriété `@Composable` qui lit le
+  thème courant. Le rendu de la grille n'étant pas composable, il reçoit la
+  palette en paramètre — ne pas y réintroduire de couleur en dur.
+- Le jeu de référence (`easy.killer.sudoku.puzzle.solver.free`) peut être
+  réinstallé sur l'émulateur depuis l'APK extrait de l'appareil, pour comparer
+  une interaction précise.
