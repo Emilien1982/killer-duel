@@ -46,6 +46,14 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                 }
         }
         viewModelScope.launch {
+            repository.digitFirst.collect { enabled ->
+                _state.value = _state.value.copy(
+                    digitFirst = enabled,
+                    session = _state.value.session?.copy(digitFirst = enabled)
+                )
+            }
+        }
+        viewModelScope.launch {
             _state.value = _state.value.copy(hasSavedGame = repository.loadInProgress() != null)
         }
     }
@@ -108,7 +116,11 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                 screen = Screen.Game,
                 generating = false,
                 hasSavedGame = false,
-                session = GameSession(puzzle = puzzle, mode = GameMode.TRAINING)
+                session = GameSession(
+                    puzzle = puzzle,
+                    mode = GameMode.TRAINING,
+                    digitFirst = _state.value.digitFirst
+                )
             )
             startTicker()
         }
@@ -147,7 +159,12 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
             _state.value = _state.value.copy(
                 screen = Screen.Game,
                 hasSavedGame = false,
-                session = GameSession(puzzle = puzzle, mode = GameMode.DUEL, opponent = plan)
+                session = GameSession(
+                    puzzle = puzzle,
+                    mode = GameMode.DUEL,
+                    opponent = plan,
+                    digitFirst = _state.value.digitFirst
+                )
             )
             startTicker()
         }
@@ -169,6 +186,7 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                 session = GameSession(
                     puzzle = saved.puzzle,
                     mode = saved.mode,
+                    digitFirst = _state.value.digitFirst,
                     entries = saved.entries,
                     notes = saved.notes,
                     mistakes = saved.mistakes,
@@ -186,9 +204,15 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
 
     // ---- Actions de jeu ----
 
-    fun selectCell(cell: Int) = mutate { copy(selected = cell) }
+    fun selectCell(cell: Int) = mutate { withCellPress(cell) }
 
-    fun enterDigit(digit: Int) = mutate { withDigit(digit) }
+    fun enterDigit(digit: Int) = mutate { withKeyPress(digit) }
+
+    fun toggleDigitFirst() {
+        val enabled = !_state.value.digitFirst
+        viewModelScope.launch { repository.setDigitFirst(enabled) }
+        mutate { withDigitFirstToggled() }
+    }
 
     fun erase() = mutate { withErase() }
 

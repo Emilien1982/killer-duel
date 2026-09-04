@@ -73,10 +73,12 @@ class GameStateTest {
     }
 
     @Test
-    fun `repeating the same digit clears the cell`() {
-        val correct = puzzle.solution[firstEmpty]
-        val filled = sessionOn(firstEmpty).withDigit(correct)
-        val cleared = filled.copy(selected = firstEmpty).withDigit(correct)
+    fun `repeating a wrong digit clears the cell`() {
+        // Le raccourci « reposer pour effacer » ne vaut que sur une case encore
+        // ouverte : une réponse juste est acquise et ne se reprend pas.
+        val wrong = (1..9).first { it != puzzle.solution[firstEmpty] }
+        val filled = sessionOn(firstEmpty).withDigit(wrong)
+        val cleared = filled.copy(selected = firstEmpty).withDigit(wrong)
         assertEquals(0, cleared.entries[firstEmpty])
     }
 
@@ -143,6 +145,89 @@ class GameStateTest {
 
         assertEquals(givens, session.opponentFilled)
         assertEquals(81, session.copy(elapsedMillis = plan.totalMillis).opponentFilled)
+    }
+
+    @Test
+    fun `a correct answer cannot be changed or erased`() {
+        val correct = puzzle.solution[firstEmpty]
+        val filled = sessionOn(firstEmpty).withDigit(correct)
+        assertTrue(filled.isLocked(firstEmpty))
+
+        val other = (1..9).first { it != correct }
+        assertEquals(correct, filled.copy(selected = firstEmpty).withDigit(other).entries[firstEmpty])
+        assertEquals(correct, filled.copy(selected = firstEmpty).withDigit(correct).entries[firstEmpty])
+        assertEquals(correct, filled.copy(selected = firstEmpty).withErase().entries[firstEmpty])
+        assertEquals(0, filled.mistakes)
+    }
+
+    @Test
+    fun `a wrong answer stays editable`() {
+        val correct = puzzle.solution[firstEmpty]
+        val wrong = (1..9).first { it != correct }
+        val filled = sessionOn(firstEmpty).withDigit(wrong)
+
+        assertFalse(filled.isLocked(firstEmpty))
+        assertEquals(0, filled.copy(selected = firstEmpty).withErase().entries[firstEmpty])
+        assertEquals(correct, filled.copy(selected = firstEmpty).withDigit(correct).entries[firstEmpty])
+    }
+
+    @Test
+    fun `digit first arms a digit instead of writing it`() {
+        val session = base.copy(digitFirst = true, selected = firstEmpty)
+        val armed = session.withKeyPress(7)
+
+        assertEquals(7, armed.activeDigit)
+        assertEquals(0, armed.entries[firstEmpty])
+
+        // Changer de chiffre ne demande pas de repasser par l'interrupteur.
+        assertEquals(4, armed.withKeyPress(4).activeDigit)
+        // Réappuyer sur le même le désarme.
+        assertEquals(0, armed.withKeyPress(7).activeDigit)
+    }
+
+    @Test
+    fun `digit first fills the cell that is touched`() {
+        val target = puzzle.givens.indices.last { puzzle.givens[it] == 0 }
+        val correct = puzzle.solution[target]
+
+        val session = base.copy(digitFirst = true).withKeyPress(correct)
+        val filled = session.withCellPress(target)
+
+        assertEquals(target, filled.selected)
+        assertEquals(correct, filled.entries[target])
+        assertEquals(correct, filled.activeDigit)
+    }
+
+    @Test
+    fun `touching a cell only selects it when no digit is armed`() {
+        val session = base.copy(digitFirst = true).withCellPress(firstEmpty)
+        assertEquals(firstEmpty, session.selected)
+        assertEquals(0, session.entries[firstEmpty])
+    }
+
+    @Test
+    fun `an armed digit cannot overwrite a solved cell`() {
+        val correct = puzzle.solution[firstEmpty]
+        val other = (1..9).first { it != correct }
+
+        val solved = sessionOn(firstEmpty).withDigit(correct)
+        val armed = solved.copy(digitFirst = true).withKeyPress(other)
+        val touched = armed.withCellPress(firstEmpty)
+
+        assertEquals(correct, touched.entries[firstEmpty])
+        assertEquals(0, touched.mistakes)
+    }
+
+    @Test
+    fun `leaving digit first mode disarms the digit`() {
+        val armed = base.copy(digitFirst = true).withKeyPress(5)
+        val off = armed.withDigitFirstToggled()
+        assertFalse(off.digitFirst)
+        assertEquals(0, off.activeDigit)
+
+        // Hors du mode, la touche écrit directement dans la case choisie.
+        val written = off.copy(selected = firstEmpty).withKeyPress(puzzle.solution[firstEmpty])
+        assertEquals(puzzle.solution[firstEmpty], written.entries[firstEmpty])
     }
 
     @Test

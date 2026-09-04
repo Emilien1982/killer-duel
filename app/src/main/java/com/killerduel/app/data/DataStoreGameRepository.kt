@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.killerduel.app.core.Difficulty
@@ -26,6 +27,7 @@ private object Keys {
     val DUEL_STATS = stringPreferencesKey("duel_stats")
     val IN_PROGRESS = stringPreferencesKey("in_progress_game")
     val SESSIONS = stringPreferencesKey("training_sessions")
+    val DIGIT_FIRST = booleanPreferencesKey("digit_first")
 }
 
 /**
@@ -47,6 +49,15 @@ class DataStoreGameRepository(private val context: Context) : GameRepository {
         context.dataStore.data
             .catch { emit(emptyPreferences()) }
             .map { decode<DuelStats>(it[Keys.DUEL_STATS]) ?: DuelStats() }
+
+    override val digitFirst: Flow<Boolean> =
+        context.dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[Keys.DIGIT_FIRST] ?: false }
+
+    override suspend fun setDigitFirst(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.DIGIT_FIRST] = enabled }
+    }
 
     override suspend fun recordTrainingSession(session: RecordedSession) {
         context.dataStore.edit { prefs ->

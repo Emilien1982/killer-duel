@@ -64,6 +64,7 @@ fun KillerDuelApp(viewModel: GameViewModel) {
                     onHint = viewModel::hint,
                     onPause = viewModel::pause,
                     onResume = viewModel::resume,
+                    onToggleDigitFirst = viewModel::toggleDigitFirst,
                     onReplay = viewModel::replay
                 )
             }

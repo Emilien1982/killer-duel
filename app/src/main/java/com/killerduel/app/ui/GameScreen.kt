@@ -20,12 +20,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,6 +50,7 @@ fun GameScreen(
     onHint: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
+    onToggleDigitFirst: () -> Unit,
     onReplay: () -> Unit
 ) {
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
@@ -98,9 +103,14 @@ fun GameScreen(
 
             NumberPad(
                 isExhausted = { session.isDigitExhausted(it) },
+                activeDigit = session.activeDigit,
                 onDigit = onDigit,
                 modifier = Modifier.padding(horizontal = 10.dp)
             )
+
+            Spacer(Modifier.height(10.dp))
+
+            DigitFirstSwitch(checked = session.digitFirst, onToggle = onToggleDigitFirst)
 
             Spacer(Modifier.weight(0.7f))
         }
@@ -306,19 +316,25 @@ private fun ActionButton(
 @Composable
 private fun NumberPad(
     isExhausted: (Int) -> Boolean,
+    activeDigit: Int,
     onDigit: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (digit in 1..9) {
             val done = isExhausted(digit)
+            val armed = digit == activeDigit
             Surface(
                 modifier = Modifier
                     .weight(1f)
                     .height(56.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .clickable(enabled = !done) { onDigit(digit) },
-                color = if (done) Palette.Background else Palette.Surface,
+                color = when {
+                    armed -> Palette.Accent
+                    done -> Palette.Background
+                    else -> Palette.Surface
+                },
                 shadowElevation = if (done) 0.dp else 2.dp,
                 shape = RoundedCornerShape(10.dp)
             ) {
@@ -326,12 +342,52 @@ private fun NumberPad(
                     Text(
                         digit.toString(),
                         fontSize = 26.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (done) Palette.TextMuted.copy(alpha = 0.35f) else Palette.Entry
+                        fontWeight = if (armed) FontWeight.Bold else FontWeight.Medium,
+                        color = when {
+                            armed -> Color.White
+                            done -> Palette.TextMuted.copy(alpha = 0.35f)
+                            else -> Palette.Entry
+                        }
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * L'interrupteur du mode « chiffre d'abord » : on arme un chiffre au pavé, puis
+ * chaque case touchée le reçoit. Le chiffre armé se change au pavé, sans repasser
+ * par l'interrupteur.
+ */
+@Composable
+private fun DigitFirstSwitch(checked: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Chiffre d'abord",
+            fontSize = 13.sp,
+            color = if (checked) Palette.Accent else Palette.TextMuted
+        )
+        Spacer(Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = { onToggle() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Palette.Accent,
+                checkedBorderColor = Palette.Accent,
+                uncheckedThumbColor = Palette.TextMuted,
+                uncheckedTrackColor = Palette.Surface,
+                uncheckedBorderColor = Palette.Divider
+            ),
+            modifier = Modifier.scale(0.8f)
+        )
     }
 }
 

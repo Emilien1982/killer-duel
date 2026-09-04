@@ -37,6 +37,10 @@ data class GameSession(
     val notes: List<Int> = List(81) { 0 },
     val selected: Int = -1,
     val pencil: Boolean = false,
+    /** Mode « chiffre d'abord » : on choisit un chiffre, puis on remplit les cases. */
+    val digitFirst: Boolean = false,
+    /** Chiffre armé en mode « chiffre d'abord », 0 si aucun. */
+    val activeDigit: Int = 0,
     val mistakes: Int = 0,
     val hintsLeft: Int = MAX_HINTS,
     val wrongCells: Set<Int> = emptySet(),
@@ -68,6 +72,13 @@ data class GameSession(
     fun valueAt(cell: Int): Int =
         if (puzzle.givens[cell] != 0) puzzle.givens[cell] else entries[cell]
 
+    /**
+     * Une case juste est acquise : ni le joueur ni un chiffre armé ne peuvent
+     * la reprendre. Seule l'annulation revient en arrière.
+     */
+    fun isLocked(cell: Int): Boolean =
+        puzzle.givens[cell] != 0 || entries[cell] == puzzle.solution[cell]
+
     fun snapshot() = Snapshot(entries, notes, mistakes, wrongCells)
 
     companion object {
@@ -82,6 +93,7 @@ data class AppState(
     val stats: Map<Difficulty, DifficultyStats> = emptyMap(),
     val duelStats: DuelStats = DuelStats(),
     val hasSavedGame: Boolean = false,
+    val digitFirst: Boolean = false,
     val generating: Boolean = false,
     val matchmakingProgress: Float = 0f
 )
@@ -92,7 +104,7 @@ data class AppState(
 fun GameSession.withDigit(digit: Int): GameSession {
     val cell = selected
     if (cell !in 0..80 || finished || paused) return this
-    if (puzzle.givens[cell] != 0) return this
+    if (isLocked(cell)) return this
 
     if (pencil) {
         val updated = notes.toMutableList()
@@ -136,7 +148,7 @@ fun GameSession.withDigit(digit: Int): GameSession {
 fun GameSession.withErase(): GameSession {
     val cell = selected
     if (cell !in 0..80 || finished || paused) return this
-    if (puzzle.givens[cell] != 0) return this
+    if (isLocked(cell)) return this
     if (entries[cell] == 0 && notes[cell] == 0) return this
 
     val updatedEntries = entries.toMutableList().also { it[cell] = 0 }
@@ -182,6 +194,32 @@ fun GameSession.withHint(): GameSession {
         history = history + snapshot()
     ).withCompletionCheck()
 }
+
+/**
+ * Appui sur une touche du pavé. En mode « chiffre d'abord » la touche arme le
+ * chiffre au lieu de l'écrire ; la réappuyer le désarme, et en changer ne
+ * demande pas de toucher à l'interrupteur.
+ */
+fun GameSession.withKeyPress(digit: Int): GameSession {
+    if (finished || paused) return this
+    if (!digitFirst) return withDigit(digit)
+    return copy(activeDigit = if (activeDigit == digit) 0 else digit)
+}
+
+/**
+ * Appui sur une case. Elle est toujours sélectionnée ; en mode « chiffre
+ * d'abord » avec un chiffre armé, elle est aussi remplie dans la foulée.
+ */
+fun GameSession.withCellPress(cell: Int): GameSession {
+    if (cell !in 0..80) return this
+    val selectedSession = copy(selected = cell)
+    if (!digitFirst || activeDigit == 0 || finished || paused) return selectedSession
+    return selectedSession.withDigit(activeDigit)
+}
+
+/** Bascule le mode « chiffre d'abord » ; le chiffre armé ne survit pas au passage. */
+fun GameSession.withDigitFirstToggled(): GameSession =
+    copy(digitFirst = !digitFirst, activeDigit = 0)
 
 /** Applique les fins de partie : grille terminée ou trop d'erreurs. */
 fun GameSession.withCompletionCheck(): GameSession = when {

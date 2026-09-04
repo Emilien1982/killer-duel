@@ -29,6 +29,8 @@ class ReplayLoopTest {
         val sessions = mutableListOf<RecordedSession>()
         override val stats: Flow<Map<Difficulty, DifficultyStats>> = MutableStateFlow(emptyMap())
         override val duelStats: Flow<DuelStats> = MutableStateFlow(DuelStats())
+        override val digitFirst: Flow<Boolean> = MutableStateFlow(false)
+        override suspend fun setDigitFirst(enabled: Boolean) {}
         override suspend fun recordTrainingSession(session: RecordedSession) { sessions += session }
         override suspend fun recordGameStarted(difficulty: Difficulty) {}
         override suspend fun recordDuel(won: Boolean) {}

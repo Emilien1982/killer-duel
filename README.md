@@ -13,6 +13,17 @@ déroulé complet.
 **Duel** — même grille pour vous et pour l'adversaire, le premier qui la remplit
 gagne. Quitter en cours de route vaut forfait.
 
+## Saisie
+
+Une **réponse juste est acquise** : la case ne se modifie plus, ne s'efface plus,
+et un chiffre armé ne peut pas la reprendre. Seule l'annulation revient dessus.
+Une réponse fausse, elle, reste ouverte — la reposer à l'identique l'efface.
+
+L'interrupteur **« Chiffre d'abord »**, sous le pavé, inverse l'ordre de saisie :
+on arme un chiffre au pavé (il s'allume), puis chaque case touchée le reçoit.
+Changer de chiffre se fait au pavé, sans repasser par l'interrupteur ; réappuyer
+sur le chiffre armé le désarme. La préférence se souvient d'une partie à l'autre.
+
 ## L'adversaire
 
 Un duel en ligne suppose un serveur et des joueurs connectés au même moment :
