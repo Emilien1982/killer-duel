@@ -55,10 +55,10 @@ val LightPalette = AppPalette(
     GridLine = Color(0xFFC9CCD1),
     GridStrong = Color(0xFF2B2B2B),
     CageDash = Color(0xFF7C838C),
-    Selected = Color(0xFFFFD24A),
-    SelectedCage = Color(0xFFFFF2C4),
-    PeerHighlight = Color(0xFFE4EDF9),
-    SameValue = Color(0xFFC6DDF7),
+    Selected = Color(0xFFA9C8F0),
+    SelectedCage = Color(0xFFE9F1FC),
+    PeerHighlight = Color(0x0D000000),
+    SameValue = Color(0xFFDCE9F9),
     Given = Color(0xFF20242A),
     Entry = Color(0xFF1A73E8),
     Error = Color(0xFFD93A3F),
@@ -73,11 +73,12 @@ val LightPalette = AppPalette(
     Success = Color(0xFF2E9E5B),
     Divider = Color(0xFFE3E5E8),
     CageTints = listOf(
-        Color(0xFFFAE7CD), Color(0xFFD7E5F7), Color(0xFFD9ECDD),
-        Color(0xFFF6DAE4), Color(0xFFE1DAF4), Color(0xFFFAEEC2)
+        Color(0xFFFFFFFF), Color(0xFFECF1F8), Color(0xFFF2F0E8),
+        Color(0xFFEAF2EC), Color(0xFFF5EDF0), Color(0xFFEEECF6)
     ),
-    CageSeparator = Color(0xFFFFFFFF),
-    NoteHighlight = Color(0xFFAFCDF4),
+    // La frontière fait le gros du travail ; la teinte ne fait que la confirmer.
+    CageSeparator = Color(0xFFC2C7CE),
+    NoteHighlight = Color(0xFFA9C8F0),
     isDark = false
 )
 
@@ -87,13 +88,16 @@ val CreamPalette = LightPalette.copy(
     Surface = Color(0xFFFCF7EC),
     GridLine = Color(0xFFD6CCB6),
     GridStrong = Color(0xFF4A4235),
-    Selected = Color(0xFFF5C64A),
+    Selected = Color(0xFFDCC189),
+    SelectedCage = Color(0xFFF6EEDC),
+    SameValue = Color(0xFFEFE4CB),
     Divider = Color(0xFFE2D8C4),
     CageTints = listOf(
-        Color(0xFFF3E3C6), Color(0xFFDCE5EC), Color(0xFFDCE8D6),
-        Color(0xFFEFDCDC), Color(0xFFE2DCEC), Color(0xFFF6EDC4)
+        Color(0xFFFCF7EC), Color(0xFFF2EDDC), Color(0xFFF7F0DE),
+        Color(0xFFEFF0E4), Color(0xFFF8EEDF), Color(0xFFF1EEE2)
     ),
-    CageSeparator = Color(0xFFFCF7EC),
+    CageSeparator = Color(0xFFC9BDA2),
+    NoteHighlight = Color(0xFFDCC189),
     isDark = false
 )
 
@@ -104,10 +108,10 @@ val DarkPalette = AppPalette(
     GridLine = Color(0xFF3A3F47),
     GridStrong = Color(0xFFB9BFC7),
     CageDash = Color(0xFF6C737C),
-    Selected = Color(0xFFB88A18),
-    SelectedCage = Color(0xFF4A3D18),
-    PeerHighlight = Color(0xFF2A3038),
-    SameValue = Color(0xFF2F4666),
+    Selected = Color(0xFF3D5F8F),
+    SelectedCage = Color(0xFF232C38),
+    PeerHighlight = Color(0x14FFFFFF),
+    SameValue = Color(0xFF2B3A4E),
     Given = Color(0xFFE8EAED),
     Entry = Color(0xFF74A9F5),
     Error = Color(0xFFF06A6E),
@@ -122,11 +126,11 @@ val DarkPalette = AppPalette(
     Success = Color(0xFF4FB878),
     Divider = Color(0xFF31363E),
     CageTints = listOf(
-        Color(0xFF3A322A), Color(0xFF25313F), Color(0xFF26352B),
-        Color(0xFF3A2A31), Color(0xFF2E2A3D), Color(0xFF3B3722)
+        Color(0xFF1F2228), Color(0xFF242932), Color(0xFF272A2E),
+        Color(0xFF222A28), Color(0xFF2A2830), Color(0xFF26262C)
     ),
-    CageSeparator = Color(0xFF16181C),
-    NoteHighlight = Color(0xFF3C5A85),
+    CageSeparator = Color(0xFF4A5059),
+    NoteHighlight = Color(0xFF3D5F8F),
     isDark = true
 )
 

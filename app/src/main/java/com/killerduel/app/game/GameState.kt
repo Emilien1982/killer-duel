@@ -6,6 +6,7 @@ import com.killerduel.app.core.bit
 import com.killerduel.app.core.maskContains
 import com.killerduel.app.data.DifficultyStats
 import com.killerduel.app.data.GameSettings
+import com.killerduel.app.data.PlayerRank
 import com.killerduel.app.data.DuelStats
 import com.killerduel.app.data.GameMode
 import com.killerduel.app.data.RecordedMove
@@ -48,6 +49,9 @@ data class GameSession(
     val wrongCells: Set<Int> = emptySet(),
     val elapsedMillis: Long = 0,
     val paused: Boolean = false,
+    val score: Int = 0,
+    /** Cases justes posées d'affilée, sans erreur ni indice. */
+    val streak: Int = 0,
     val history: List<Snapshot> = emptyList(),
     val moveLog: List<RecordedMove> = emptyList(),
     val opponent: OpponentPlan? = null,
@@ -87,6 +91,26 @@ data class GameSession(
 
     fun snapshot() = Snapshot(entries, notes, mistakes, wrongCells)
 
+    /** Temps sous lequel la grille vaut une étoile de plus. */
+    val targetMillis: Long
+        get() = when (puzzle.difficulty) {
+            Difficulty.EASY -> 6 * 60_000L
+            Difficulty.MEDIUM -> 12 * 60_000L
+            Difficulty.HARD -> 20 * 60_000L
+            Difficulty.KILLER -> 30 * 60_000L
+        }
+
+    val beatTheClock: Boolean get() = elapsedMillis <= targetMillis
+    val flawless: Boolean get() = mistakes == 0
+
+    /**
+     * Une étoile pour la grille terminée, une pour le temps, une pour le
+     * sans-faute. Une partie perdue n'en rapporte aucune.
+     */
+    val stars: Int
+        get() = if (outcome != Outcome.WON) 0
+        else 1 + (if (beatTheClock) 1 else 0) + (if (flawless) 1 else 0)
+
     companion object {
         const val MAX_MISTAKES = 3
         const val MAX_HINTS = 3
@@ -101,6 +125,7 @@ data class AppState(
     val hasSavedGame: Boolean = false,
     val settings: GameSettings = GameSettings(),
     val dailyWins: Set<String> = emptySet(),
+    val rank: PlayerRank = PlayerRank(),
     val generating: Boolean = false,
     val matchmakingProgress: Float = 0f
 )
@@ -142,12 +167,20 @@ fun GameSession.withDigit(digit: Int): GameSession {
 
     val log = if (correct) moveLog + RecordedMove(elapsedMillis, cell, digit) else moveLog
 
+    // Une case juste vaut d'autant plus qu'elle prolonge une série sans faute ;
+    // une erreur coûte des points et remet la série à zéro.
+    val updatedStreak = if (correct) streak + 1 else 0
+    val gain = if (correct) CELL_POINTS + (updatedStreak - 1).coerceAtMost(STREAK_CAP) * STREAK_STEP
+    else -MISTAKE_PENALTY
+
     return copy(
         entries = updatedEntries,
         notes = updatedNotes,
         mistakes = updatedMistakes,
         wrongCells = updatedWrong,
         moveLog = log,
+        score = (score + gain).coerceAtLeast(0),
+        streak = updatedStreak,
         history = history + snapshot()
     ).withCompletionCheck()
 }
@@ -196,6 +229,7 @@ fun GameSession.withHint(): GameSession {
         notes = updatedNotes,
         wrongCells = wrongCells - cell,
         hintsLeft = hintsLeft - 1,
+        streak = 0,
         selected = cell,
         moveLog = moveLog + RecordedMove(elapsedMillis, cell, digit),
         history = history + snapshot()
@@ -233,11 +267,32 @@ fun GameSession.withSettings(updated: GameSettings): GameSession =
 
 /** Applique les fins de partie : grille terminée ou trop d'erreurs. */
 fun GameSession.withCompletionCheck(): GameSession = when {
-    solved -> copy(outcome = Outcome.WON, selected = -1)
+    solved -> copy(outcome = Outcome.WON, selected = -1).withFinalBonus()
     settings.mistakesLimit && mistakes >= GameSession.MAX_MISTAKES ->
         copy(outcome = Outcome.LOST_ON_MISTAKES)
     else -> this
 }
+
+/**
+ * Prime de fin de partie : le temps restant sur l'objectif, et un forfait pour
+ * une grille sans la moindre erreur.
+ */
+private fun GameSession.withFinalBonus(): GameSession {
+    val timeBonus = if (beatTheClock) {
+        (TIME_BONUS * (targetMillis - elapsedMillis).toDouble() / targetMillis).toInt()
+    } else {
+        0
+    }
+    val flawlessBonus = if (flawless) FLAWLESS_BONUS else 0
+    return copy(score = score + timeBonus + flawlessBonus)
+}
+
+private const val CELL_POINTS = 10
+private const val STREAK_STEP = 2
+private const val STREAK_CAP = 10
+private const val MISTAKE_PENALTY = 25
+private const val TIME_BONUS = 600
+private const val FLAWLESS_BONUS = 300
 
 /** Vérifie si l'adversaire vient de terminer avant le joueur. */
 fun GameSession.withOpponentCheck(): GameSession {

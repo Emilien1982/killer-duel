@@ -52,6 +52,7 @@ fun GameScreen(
     onResume: () -> Unit,
     onToggleDigitFirst: () -> Unit,
     onSettings: () -> Unit,
+    level: Int,
     onReplay: () -> Unit
 ) {
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
@@ -69,6 +70,17 @@ fun GameScreen(
                 // l'entraînement s'interrompt.
                 pauseEnabled = !session.finished && session.mode == GameMode.TRAINING
             )
+
+            if (session.settings.showScore) {
+                Text(
+                    "Score  ${session.score}",
+                    color = Palette.Accent,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
 
             InfoRow(session)
 
@@ -128,7 +140,7 @@ fun GameScreen(
             PauseOverlay(onResume = onResume)
         }
         if (session.finished) {
-            ResultOverlay(session = session, onReplay = onReplay, onHome = onBack)
+            ResultOverlay(session = session, level = level, onReplay = onReplay, onHome = onBack)
         }
     }
 }

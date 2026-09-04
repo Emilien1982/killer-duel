@@ -74,7 +74,12 @@ fun PauseOverlay(onResume: () -> Unit) {
 }
 
 @Composable
-fun ResultOverlay(session: GameSession, onReplay: () -> Unit, onHome: () -> Unit) {
+fun ResultOverlay(
+    session: GameSession,
+    level: Int,
+    onReplay: () -> Unit,
+    onHome: () -> Unit
+) {
     val won = session.outcome == Outcome.WON
     val opponentName = session.opponent?.profile?.name
 
@@ -98,12 +103,13 @@ fun ResultOverlay(session: GameSession, onReplay: () -> Unit, onHome: () -> Unit
 
     Scrim {
         DialogCard {
-            AppIconView(
-                if (won) AppIcon.Trophy else AppIcon.Stats,
-                if (won) Palette.Gold else Palette.TextMuted,
-                size = 40.dp
-            )
-            Spacer(Modifier.height(14.dp))
+            if (won) {
+                StarRow(session.stars)
+                Spacer(Modifier.height(10.dp))
+            } else {
+                AppIconView(AppIcon.Stats, Palette.TextMuted, size = 40.dp)
+                Spacer(Modifier.height(14.dp))
+            }
             Text(
                 title,
                 fontSize = 22.sp,
@@ -124,8 +130,18 @@ fun ResultOverlay(session: GameSession, onReplay: () -> Unit, onHome: () -> Unit
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 ResultStat("Temps", formatDuration(session.elapsedMillis))
-                ResultStat("Erreurs", "${session.mistakes}/${GameSession.MAX_MISTAKES}")
-                ResultStat("Cases", "${session.filledCount}/81")
+                ResultStat("Score", session.score.toString())
+                ResultStat("Niveau", level.toString())
+            }
+
+            if (won && session.stars < 3) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    missingStarHint(session),
+                    fontSize = 12.sp,
+                    color = Palette.TextMuted,
+                    textAlign = TextAlign.Center
+                )
             }
 
             Spacer(Modifier.height(22.dp))
@@ -134,6 +150,30 @@ fun ResultOverlay(session: GameSession, onReplay: () -> Unit, onHome: () -> Unit
             SecondaryButton("Accueil", onHome, Modifier.fillMaxWidth())
         }
     }
+}
+
+/** Les trois étoiles de la partie : gagnées en doré, manquées en creux. */
+@Composable
+private fun StarRow(stars: Int) {
+    Row(horizontalArrangement = Arrangement.Center) {
+        for (i in 1..3) {
+            AppIconView(
+                AppIcon.Star,
+                if (i <= stars) Palette.Gold else Palette.Divider,
+                size = if (i == 2) 44.dp else 34.dp,
+                modifier = Modifier.padding(horizontal = 3.dp)
+            )
+        }
+    }
+}
+
+/** Dit ce qui manquait, plutôt que de laisser deviner. */
+private fun missingStarHint(session: GameSession): String = when {
+    !session.beatTheClock && !session.flawless ->
+        "Sous ${formatDuration(session.targetMillis)} et sans erreur pour trois étoiles."
+    !session.beatTheClock ->
+        "Il fallait finir sous ${formatDuration(session.targetMillis)} pour la dernière étoile."
+    else -> "Une grille sans erreur vous aurait donné la dernière étoile."
 }
 
 @Composable

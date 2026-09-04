@@ -37,11 +37,27 @@ Volontairement absents : duel en ligne réel, saisons, classements, tickets,
 événement du moment, publicité et son écran de consentement, sons et
 notifications.
 
+## Score, étoiles et niveau
+
+Chaque case juste rapporte des points, d'autant plus qu'elle prolonge une série
+sans faute ; une erreur en coûte et remet la série à zéro ; un indice ne
+rapporte rien. Finir la grille ajoute une prime au temps et une prime au
+sans-faute.
+
+Une partie gagnée vaut de une à trois étoiles : une pour la grille terminée,
+une pour l'avoir finie sous le temps de l'objectif (6, 12, 20 ou 30 minutes
+selon le niveau), une pour l'avoir finie sans aucune erreur.
+
+Chaque étoile fait monter le **niveau du mois** d'un cran, jusqu'à cent. Au
+changement de mois, le niveau repart de sa moitié : atteindre cent laisse
+cinquante au mois suivant. Ce qui a été gagné compte encore, sans que le
+compteur se fige au plafond.
+
 ## Réglages
 
 Chronomètre · limite d'erreurs · chiffre d'abord · chiffres restants · cages
 colorées · surlignage de la région · surlignage des chiffres identiques ·
-effacement automatique des notes · thème (clair, crème, sombre).
+effacement automatique des notes · score · thème (clair, crème, sombre).
 
 ## Saisie
 

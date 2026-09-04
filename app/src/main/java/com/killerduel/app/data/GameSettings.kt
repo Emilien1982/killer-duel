@@ -30,6 +30,8 @@ data class GameSettings(
     val autoClearNotes: Boolean = true,
     /** Afficher sous chaque touche le nombre de chiffres restant à placer. */
     val showRemainingCounts: Boolean = true,
+    /** Afficher le score qui court pendant la partie. */
+    val showScore: Boolean = true,
     /** Colorer les cages plutôt que de les cerner de pointillés. */
     val colorfulCages: Boolean = true,
     val theme: AppTheme = AppTheme.LIGHT

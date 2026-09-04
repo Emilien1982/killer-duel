@@ -32,6 +32,7 @@ fun HomeScreen(
     duelStats: DuelStats,
     hasSavedGame: Boolean,
     dailyDone: Boolean,
+    level: Int,
     onDaily: () -> Unit,
     onTraining: () -> Unit,
     onDuel: () -> Unit,
@@ -44,22 +45,14 @@ fun HomeScreen(
             .background(Palette.Background)
             .padding(horizontal = 22.dp)
     ) {
-        Spacer(Modifier.height(64.dp))
+        Spacer(Modifier.height(56.dp))
 
-        Text(
-            "Killer",
-            fontSize = 40.sp,
-            fontWeight = FontWeight.Bold,
-            color = Palette.TextPrimary,
-            letterSpacing = (-1).sp
-        )
-        Text(
-            "Duel",
-            fontSize = 40.sp,
-            fontWeight = FontWeight.Bold,
-            color = Palette.Accent,
-            letterSpacing = (-1).sp
-        )
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Title()
+            }
+            LevelBadge(level)
+        }
         Spacer(Modifier.height(6.dp))
         Text(
             "Sudoku à cages. Seul, ou contre quelqu'un.",
@@ -115,6 +108,52 @@ fun HomeScreen(
             Text("Statistiques", color = Palette.TextMuted, fontSize = 15.sp)
         }
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun Title() {
+    Column {
+        Text(
+            "Killer",
+            fontSize = 40.sp,
+            fontWeight = FontWeight.Bold,
+            color = Palette.TextPrimary,
+            letterSpacing = (-1).sp
+        )
+        Text(
+            "Duel",
+            fontSize = 40.sp,
+            fontWeight = FontWeight.Bold,
+            color = Palette.Accent,
+            letterSpacing = (-1).sp
+        )
+    }
+}
+
+/**
+ * Niveau du mois. Il monte d'un cran par étoile gagnée, plafonne à cent, et
+ * repart chaque mois de la moitié du niveau atteint.
+ */
+@Composable
+private fun LevelBadge(level: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Palette.Accent.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                level.toString(),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Palette.Accent
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text("Niveau", fontSize = 11.sp, color = Palette.TextMuted)
     }
 }
 

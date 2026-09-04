@@ -23,6 +23,14 @@ interface GameRepository {
 
     suspend fun recordDailyWin(date: String)
 
+    val rank: Flow<PlayerRank>
+
+    /**
+     * Met le niveau à jour : bascule de mois si nécessaire, puis ajoute les
+     * étoiles gagnées. Avec zéro étoile, sert simplement à rafraîchir le mois.
+     */
+    suspend fun advanceRank(currentMonth: String, starsEarned: Int)
+
     /** Enregistre une partie d'entraînement terminée et met à jour les statistiques. */
     suspend fun recordTrainingSession(session: RecordedSession)
 

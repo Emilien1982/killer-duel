@@ -84,6 +84,12 @@ fun SettingsScreen(
                 "Afficher sous chaque touche ce qu'il reste à placer",
                 settings.showRemainingCounts
             ) { onChange(settings.copy(showRemainingCounts = it)) }
+            RowDivider()
+            SettingRow(
+                "Score",
+                "Afficher le score qui court pendant la partie",
+                settings.showScore
+            ) { onChange(settings.copy(showScore = it)) }
         }
 
         Spacer(Modifier.height(18.dp))

@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
  * Les quelques pictogrammes du jeu, tracés à la main : six icônes ne justifient
  * pas d'embarquer une bibliothèque entière, et le trait reste raccord avec la grille.
  */
-enum class AppIcon { Back, Pause, Play, Undo, Erase, Pencil, Hint, Trophy, Stats, Settings, Calendar }
+enum class AppIcon { Back, Pause, Play, Undo, Erase, Pencil, Hint, Trophy, Stats, Settings, Calendar, Star }
 
 @Composable
 fun AppIconView(
@@ -45,6 +45,7 @@ fun AppIconView(
             AppIcon.Stats -> drawStats(tint, s)
             AppIcon.Settings -> drawSettings(tint, s, stroke)
             AppIcon.Calendar -> drawCalendar(tint, s, stroke)
+            AppIcon.Star -> drawStar(tint, s)
         }
     }
 }
@@ -164,6 +165,23 @@ private fun DrawScope.drawTrophy(tint: Color, s: Float, stroke: Stroke) {
         tint, Offset(s * 0.3f, s * 0.71f), Size(s * 0.4f, s * 0.11f),
         androidx.compose.ui.geometry.CornerRadius(s * 0.03f)
     )
+}
+
+private fun DrawScope.drawStar(tint: Color, s: Float) {
+    val outer = s * 0.46f
+    val inner = outer * 0.42f
+    val cx = s / 2f
+    val cy = s / 2f
+    val path = Path()
+    for (i in 0 until 10) {
+        val radius = if (i % 2 == 0) outer else inner
+        val angle = Math.toRadians(-90.0 + i * 36.0)
+        val x = cx + radius * kotlin.math.cos(angle).toFloat()
+        val y = cy + radius * kotlin.math.sin(angle).toFloat()
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    drawPath(path, tint)
 }
 
 private fun DrawScope.drawCalendar(tint: Color, s: Float, stroke: Stroke) {

@@ -32,6 +32,7 @@ fun KillerDuelApp(viewModel: GameViewModel) {
                 duelStats = state.duelStats,
                 hasSavedGame = state.hasSavedGame,
                 dailyDone = GameViewModel.today() in state.dailyWins,
+                level = state.rank.level,
                 onDaily = viewModel::startDaily,
                 onTraining = { viewModel.openLevelPicker(GameMode.TRAINING) },
                 onDuel = { viewModel.openLevelPicker(GameMode.DUEL) },
@@ -70,6 +71,7 @@ fun KillerDuelApp(viewModel: GameViewModel) {
                     onResume = viewModel::resume,
                     onToggleDigitFirst = viewModel::toggleDigitFirst,
                     onSettings = viewModel::openSettings,
+                    level = state.rank.level,
                     onReplay = viewModel::replay
                 )
             }

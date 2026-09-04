@@ -28,6 +28,7 @@ private object Keys {
     val SESSIONS = stringPreferencesKey("training_sessions")
     val SETTINGS = stringPreferencesKey("game_settings")
     val DAILY_WINS = stringPreferencesKey("daily_wins")
+    val RANK = stringPreferencesKey("player_rank")
 }
 
 /**
@@ -71,6 +72,18 @@ class DataStoreGameRepository(private val context: Context) : GameRepository {
         context.dataStore.edit { prefs ->
             val current = decode<Set<String>>(prefs[Keys.DAILY_WINS]).orEmpty()
             prefs[Keys.DAILY_WINS] = json.encodeToString(current + date)
+        }
+    }
+
+    override val rank: Flow<PlayerRank> =
+        context.dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { decode<PlayerRank>(it[Keys.RANK]) ?: PlayerRank() }
+
+    override suspend fun advanceRank(currentMonth: String, starsEarned: Int) {
+        context.dataStore.edit { prefs ->
+            val current = decode<PlayerRank>(prefs[Keys.RANK]) ?: PlayerRank()
+            prefs[Keys.RANK] = json.encodeToString(current.advance(currentMonth, starsEarned))
         }
     }
 

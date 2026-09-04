@@ -119,18 +119,21 @@ private fun DrawScope.drawCells(state: BoardState, cell: Float, palette: AppPale
             palette.Surface
         }
 
-        // Les surlignages se posent sur la teinte de la cage au lieu de la
-        // remplacer : la cage reste identifiable même une fois la case éclairée.
-        if (settings.highlightRegions && selected in 0..80 &&
+        // Un surlignage mélangé à la teinte de la cage vire au gris sur une
+        // teinte chaude et au bleu sur une froide : il paraissait alors ne pas
+        // suivre le chiffre choisi. Les mises en avant sont donc des couleurs
+        // pleines, identiques d'une case à l'autre.
+        val peer = settings.highlightRegions && selected in 0..80 &&
             (rowOf(c) == row || colOf(c) == col || boxOf(c) == box)
-        ) {
-            color = color.darken(0.10f)
+        val sameDigit = settings.highlightSameNumbers && focus != 0 && state.valueAt(c) == focus
+
+        color = when {
+            c == selected -> palette.Selected
+            c in state.wrongCells -> palette.ErrorBackground
+            sameDigit -> palette.SameValue
+            peer -> color.over(palette.PeerHighlight)
+            else -> color
         }
-        if (settings.highlightSameNumbers && focus != 0 && state.valueAt(c) == focus) {
-            color = color.mix(palette.Accent, 0.26f)
-        }
-        if (c in state.wrongCells) color = palette.ErrorBackground
-        if (c == selected) color = palette.Selected
 
         drawRect(
             color = color,
@@ -249,10 +252,13 @@ private fun DrawScope.drawContents(state: BoardState, cell: Float, paints: Board
         }
 
         if (shown != 0) {
+            val focused = state.settings.highlightSameNumbers &&
+                shown == state.focusDigit && state.focusDigit != 0
             val paint = when {
-                given != 0 -> paints.given
                 c in state.wrongCells -> paints.wrong
                 state.revealSolution && entry == 0 -> paints.revealed
+                focused && given == 0 -> paints.entryFocused
+                given != 0 -> paints.given
                 else -> paints.entry
             }
             paint.textSize = cell * 0.62f
@@ -325,12 +331,16 @@ private fun Color.darken(amount: Float) = Color(
     alpha = alpha
 )
 
-private fun Color.mix(other: Color, ratio: Float) = Color(
-    red = red * (1f - ratio) + other.red * ratio,
-    green = green * (1f - ratio) + other.green * ratio,
-    blue = blue * (1f - ratio) + other.blue * ratio,
-    alpha = alpha
-)
+/** Compose un voile semi-transparent par-dessus cette couleur. */
+private fun Color.over(veil: Color): Color {
+    val a = veil.alpha
+    return Color(
+        red = red * (1f - a) + veil.red * a,
+        green = green * (1f - a) + veil.green * a,
+        blue = blue * (1f - a) + veil.blue * a,
+        alpha = 1f
+    )
+}
 
 /**
  * Peintures et effets de trait construits une fois pour toutes : mesurer 81 textes
@@ -354,6 +364,7 @@ private class BoardPaints(density: Float, palette: AppPalette) {
     val entry = basePaint(palette.Entry, Typeface.NORMAL)
     val wrong = basePaint(palette.Error, Typeface.BOLD)
     val revealed = basePaint(palette.Success, Typeface.NORMAL)
+    val entryFocused = basePaint(palette.Entry, Typeface.BOLD)
     val note = basePaint(palette.Note, Typeface.NORMAL)
     val noteFocused = basePaint(palette.Given, Typeface.BOLD)
     val cageSum = basePaint(palette.CageSum, Typeface.BOLD).apply {

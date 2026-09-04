@@ -265,6 +265,89 @@ class GameStateTest {
     }
 
     @Test
+    fun `a correct cell scores, a mistake costs and breaks the streak`() {
+        val cells = puzzle.givens.indices.filter { puzzle.givens[it] == 0 }
+        var session = base
+
+        // Trois cases justes d'affilée : la série fait monter le gain.
+        session = session.copy(selected = cells[0]).withDigit(puzzle.solution[cells[0]])
+        val afterFirst = session.score
+        session = session.copy(selected = cells[1]).withDigit(puzzle.solution[cells[1]])
+        val afterSecond = session.score
+        session = session.copy(selected = cells[2]).withDigit(puzzle.solution[cells[2]])
+
+        assertEquals(10, afterFirst)
+        assertTrue(afterSecond - afterFirst > afterFirst)
+        assertEquals(3, session.streak)
+
+        // Une erreur coûte des points et remet la série à zéro.
+        val before = session.score
+        val wrong = (1..9).first { it != puzzle.solution[cells[3]] }
+        session = session.copy(selected = cells[3]).withDigit(wrong)
+        assertTrue(session.score < before)
+        assertEquals(0, session.streak)
+    }
+
+    @Test
+    fun `the score never goes below zero`() {
+        val cell = firstEmpty
+        val wrong = (1..9).first { it != puzzle.solution[cell] }
+        val after = base.copy(selected = cell).withDigit(wrong)
+        assertEquals(0, after.score)
+    }
+
+    @Test
+    fun `three stars need the clock and a clean grid`() {
+        fun play(elapsed: Long, mistakes: Int): GameSession {
+            var session = base.copy(mistakes = mistakes)
+            for (cell in 0 until 81) {
+                if (puzzle.givens[cell] != 0) continue
+                session = session.copy(selected = cell, elapsedMillis = elapsed)
+                    .withDigit(puzzle.solution[cell])
+            }
+            return session
+        }
+
+        val perfect = play(elapsed = 60_000L, mistakes = 0)
+        assertEquals(Outcome.WON, perfect.outcome)
+        assertEquals(3, perfect.stars)
+
+        assertEquals(2, play(elapsed = 60_000L, mistakes = 1).stars)
+        assertEquals(2, play(elapsed = 40L * 60_000L, mistakes = 0).stars)
+        assertEquals(1, play(elapsed = 40L * 60_000L, mistakes = 2).stars)
+    }
+
+    @Test
+    fun `a lost game earns no star`() {
+        val lost = base.copy(outcome = Outcome.LOST_ON_MISTAKES, mistakes = 3)
+        assertEquals(0, lost.stars)
+        assertEquals(0, base.copy(outcome = Outcome.LOST_ON_TIME).stars)
+    }
+
+    @Test
+    fun `finishing fast and clean pays a bonus`() {
+        var quick = base
+        var slow = base
+        for (cell in 0 until 81) {
+            if (puzzle.givens[cell] != 0) continue
+            quick = quick.copy(selected = cell, elapsedMillis = 30_000L)
+                .withDigit(puzzle.solution[cell])
+            slow = slow.copy(selected = cell, elapsedMillis = 60L * 60_000L)
+                .withDigit(puzzle.solution[cell])
+        }
+        assertTrue("la prime de fin doit récompenser le temps", quick.score > slow.score)
+    }
+
+    @Test
+    fun `a hint breaks the streak`() {
+        val cells = puzzle.givens.indices.filter { puzzle.givens[it] == 0 }
+        var session = base.copy(selected = cells[0]).withDigit(puzzle.solution[cells[0]])
+        assertEquals(1, session.streak)
+        session = session.copy(selected = cells[1]).withHint()
+        assertEquals(0, session.streak)
+    }
+
+    @Test
     fun `a finished game ignores further input`() {
         val finished = base.copy(selected = firstEmpty, outcome = Outcome.WON)
         assertEquals(finished.entries, finished.withDigit(1).entries)

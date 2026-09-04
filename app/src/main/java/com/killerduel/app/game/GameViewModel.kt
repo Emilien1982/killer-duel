@@ -61,6 +61,14 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
             }
         }
         viewModelScope.launch {
+            repository.rank.collect { rank ->
+                _state.value = _state.value.copy(rank = rank)
+            }
+        }
+        // La bascule de mois doit se voir dès l'ouverture, pas seulement après
+        // une partie gagnée.
+        viewModelScope.launch { repository.advanceRank(currentMonth(), starsEarned = 0) }
+        viewModelScope.launch {
             _state.value = _state.value.copy(hasSavedGame = repository.loadInProgress() != null)
         }
     }
@@ -362,6 +370,9 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
             }
             // Seules les parties d'entraînement menées à leur terme alimentent
             // l'historique : ce sont elles qui fourniront les futurs adversaires.
+            if (session.stars > 0) {
+                repository.advanceRank(currentMonth(), session.stars)
+            }
             if (session.dailyDate != null && session.outcome == Outcome.WON) {
                 repository.recordDailyWin(session.dailyDate)
             }
@@ -413,6 +424,9 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
         private val DAILY_DIFFICULTY = Difficulty.MEDIUM
 
         fun today(): String = java.time.LocalDate.now().toString()
+
+        /** Mois courant au format AAAA-MM, clé de la remise en jeu du niveau. */
+        fun currentMonth(): String = today().substring(0, 7)
 
         /** La graine dérive de la date : tout le monde reçoit la même grille. */
         fun seedForDate(date: String): Long = date.replace("-", "").toLong()
