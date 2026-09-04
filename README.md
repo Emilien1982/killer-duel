@@ -163,7 +163,11 @@ plusieurs essais. La génération tourne hors du thread principal, derrière un
 
 ## Construire et installer
 
+`local.properties` n'est pas suivi par git : après un clone, le créer avec le
+chemin du SDK Android de la machine.
+
 ```bash
+echo "sdk.dir=$HOME/Library/Android/sdk" > local.properties
 export ANDROID_HOME=$HOME/Library/Android/sdk
 export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 ./gradlew :app:assembleDebug
