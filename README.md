@@ -81,6 +81,12 @@ La recherche en profondeur est bornée par un budget de nœuds. Un découpage qu
 dépasse ce budget produirait une grille insoluble à la main : on en essaie un
 autre, c'est bien moins cher.
 
+Le découpage lui-même est biaisé : une cage a sept chances sur dix de franchir
+la frontière de sa région 3×3. Une cage à cheval laisse des innies dans
+plusieurs unités à la fois, donc plus de prise à la règle des 45. Mesuré, ce
+seul biais divise par trois le temps de génération d'une grille Killer — le
+biais inverse, qui semblait pourtant plus naturel, le multipliait par cinq.
+
 ### Contrat de difficulté
 
 | Niveau | Cages | Chiffres donnés | Exigence |
@@ -92,9 +98,11 @@ autre, c'est bien moins cher.
 
 Aucun niveau ne comporte de cage d'une seule case : elle offrirait son chiffre.
 
-Coût de génération mesuré par la suite de tests : 1 à 3 ms par grille, environ
-800 ms au niveau Killer (le découpage doit déterminer la grille à lui seul, ce
-qui demande plusieurs essais). La génération tourne hors du thread principal.
+Coût de génération mesuré par la suite de tests (JVM de bureau) : 1 à 3 ms par
+grille, et pour le niveau Killer, sur 40 grilles, **146 ms en médiane, 1,3 s au
+pire** — le découpage doit y déterminer la grille à lui seul, ce qui demande
+plusieurs essais. La génération tourne hors du thread principal, derrière un
+écran de composition.
 
 ## Construire et installer
 

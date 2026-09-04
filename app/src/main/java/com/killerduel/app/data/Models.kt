@@ -42,7 +42,11 @@ data class DuelStats(val played: Int = 0, val won: Int = 0)
 /** Mode de jeu en cours. */
 enum class GameMode { TRAINING, DUEL }
 
-/** Partie interrompue, restaurée telle quelle au retour dans l'application. */
+/**
+ * Partie interrompue, restaurée au retour dans l'application. L'historique
+ * d'annulation n'en fait pas partie : le conserver alourdirait chaque
+ * sauvegarde d'une copie complète de la grille par coup joué.
+ */
 @Serializable
 data class SavedGame(
     val puzzle: Puzzle,
@@ -50,6 +54,7 @@ data class SavedGame(
     val entries: List<Int>,
     val notes: List<Int>,
     val mistakes: Int,
+    val hintsLeft: Int,
     val elapsedMillis: Long,
     val moveLog: List<RecordedMove>
 )

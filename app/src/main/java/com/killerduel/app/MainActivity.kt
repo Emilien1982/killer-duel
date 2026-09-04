@@ -42,9 +42,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        viewModel.onAppForegrounded()
+    }
+
     override fun onStop() {
-        // L'utilisateur peut quitter à tout moment : la grille en cours est conservée.
-        viewModel.saveProgress()
+        // L'utilisateur peut quitter à tout moment : le chronomètre ne doit pas
+        // continuer à courir pour lui, et la grille en cours est conservée.
+        viewModel.onAppBackgrounded()
         super.onStop()
     }
 }

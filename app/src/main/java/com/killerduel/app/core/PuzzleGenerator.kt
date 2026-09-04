@@ -43,7 +43,7 @@ object PuzzleGenerator {
                     // Une vraie grille Killer ne montre aucun chiffre : le découpage
                     // doit déterminer la grille à lui seul, sinon on en essaie un autre.
                     val empty = IntArray(81)
-                    val bare = KillerSolver(cages, empty).solve(2, nodeBudget = NODE_BUDGET)
+                    val bare = KillerSolver(cages, empty).solve(2, nodeBudget = BARE_BUDGET)
                     if (!bare.aborted && bare.solutionCount == 1) {
                         best = cages to empty
                         bestGivens = 0
@@ -62,8 +62,26 @@ object PuzzleGenerator {
             }
         }
 
-        // Filet de sécurité : aucun découpage ne s'est suffi à lui-même, on retombe
-        // sur un retrait progressif classique.
+        // Filet de sécurité. Au niveau Killer, montrer ne serait-ce qu'un chiffre
+        // romprait le contrat du niveau : on s'obstine sur de nouveaux découpages,
+        // qui ne coûtent qu'un test d'unicité chacun. Ailleurs, un retrait
+        // progressif classique suffit.
+        if (best == null) {
+            val empty = IntArray(81)
+            while (spec.targetGivens == 0) {
+                val solution = fullSolution(rng) ?: continue
+                repeat(CAGE_ATTEMPTS) {
+                    if (best == null) {
+                        val cages = buildCages(solution, rng, spec)
+                        if (cages.isNotEmpty()) {
+                            val bare = KillerSolver(cages, empty).solve(2, nodeBudget = BARE_BUDGET)
+                            if (!bare.aborted && bare.solutionCount == 1) best = cages to empty
+                        }
+                    }
+                }
+                if (best != null) break
+            }
+        }
         if (best == null) {
             val solution = fullSolution(rng)!!
             var cages = buildCages(solution, rng, spec)
@@ -115,6 +133,16 @@ object PuzzleGenerator {
      * insoluble à la main : autant en essayer un autre, c'est bien moins cher.
      */
     private const val NODE_BUDGET = 2500
+
+    /**
+     * Budget bien plus serré pour juger un découpage Killer : une grille qui
+     * demande une recherche profonde ne se résout pas à la main de toute façon,
+     * et un autre découpage coûte moins cher qu'une exploration.
+     */
+    private const val BARE_BUDGET = 250
+
+    /** Part des extensions de cage qui franchissent la frontière d'une région 3x3. */
+    private const val CROSS_BOX_BIAS = 0.7
 
     // ---- Solution complète ----
 
@@ -168,7 +196,18 @@ object PuzzleGenerator {
                     }
                 }
                 if (options.isEmpty()) break
-                val pick = options[rng.nextInt(options.size)]
+
+                // Une cage qui déborde de sa région 3x3 laisse des « innies » dans
+                // plusieurs unités à la fois, ce qui donne prise à la règle des 45.
+                // Mesuré : le découpage se suffit à lui-même bien plus souvent, et
+                // la génération d'une grille Killer y gagne un facteur trois.
+                val crossing = options.filter { boxOf(it) != boxOf(start) }
+                val pool = if (crossing.isNotEmpty() && rng.nextDouble() < CROSS_BOX_BIAS) {
+                    crossing
+                } else {
+                    options
+                }
+                val pick = pool[rng.nextInt(pool.size)]
                 cageId[pick] = groups.size
                 digits = digits or bit(solution[pick])
                 group.add(pick)

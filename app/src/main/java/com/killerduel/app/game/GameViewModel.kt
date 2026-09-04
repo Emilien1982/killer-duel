@@ -12,6 +12,7 @@ import com.killerduel.app.data.SavedGame
 import com.killerduel.app.opponent.OpponentPicker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,14 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
     val state: StateFlow<AppState> = _state.asStateFlow()
 
     private var ticker: Job? = null
+
+    /** Génération et appariement en cours : quitter l'écran doit les interrompre. */
+    private var startJob: Job? = null
+
     private var lastTickAt = 0L
+
+    /** Instant de mise en arrière-plan, pour rattraper le temps d'un duel au retour. */
+    private var backgroundedAt = 0L
 
     init {
         viewModelScope.launch {
@@ -45,8 +53,9 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
     // ---- Navigation ----
 
     fun openHome() {
+        cancelPending()
         stopTicker()
-        _state.value = _state.value.copy(screen = Screen.Home)
+        _state.value = _state.value.copy(screen = Screen.Home, generating = false)
     }
 
     fun openLevelPicker(mode: GameMode) {
@@ -71,7 +80,8 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                     saveProgress()
                     _state.value = current.copy(
                         screen = Screen.Home,
-                        hasSavedGame = session != null && !session.finished
+                        hasSavedGame = session != null && !session.finished &&
+                            session.mode == GameMode.TRAINING
                     )
                 }
             }
@@ -79,10 +89,17 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
         }
     }
 
+    /** Interrompt une génération ou un appariement en cours et remet l'écran au propre. */
+    private fun cancelPending() {
+        startJob?.cancel()
+        startJob = null
+    }
+
     // ---- Démarrage d'une partie ----
 
     fun startTraining(difficulty: Difficulty) {
-        viewModelScope.launch {
+        cancelPending()
+        startJob = viewModelScope.launch {
             _state.value = _state.value.copy(generating = true)
             val puzzle = withContext(Dispatchers.Default) { PuzzleGenerator.generate(difficulty) }
             repository.recordGameStarted(difficulty)
@@ -98,40 +115,39 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
     }
 
     /**
-     * Le duel affiche d'abord une recherche d'adversaire : le temps que la grille
-     * se génère, on met en scène l'appariement plutôt qu'un écran de chargement.
+     * Le duel met en scène la recherche d'un adversaire. La grille se compose
+     * pendant ce temps, pas avant : les deux avancent de front pour que la barre
+     * de progression ne reste pas figée.
      */
     fun startDuel(difficulty: Difficulty) {
-        viewModelScope.launch {
+        cancelPending()
+        startJob = viewModelScope.launch {
             _state.value = _state.value.copy(
                 screen = Screen.Matchmaking(difficulty),
                 matchmakingProgress = 0f
             )
 
-            val puzzleDeferred = withContext(Dispatchers.Default) {
-                PuzzleGenerator.generate(difficulty)
+            val puzzleAsync = async(Dispatchers.Default) { PuzzleGenerator.generate(difficulty) }
+            val showcase = launch {
+                repeat(MATCHMAKING_STEPS) { i ->
+                    delay(MATCHMAKING_MILLIS / MATCHMAKING_STEPS)
+                    _state.value = _state.value.copy(
+                        matchmakingProgress = (i + 1f) / MATCHMAKING_STEPS
+                    )
+                }
             }
+
+            val puzzle = puzzleAsync.await()
             val seed = Random.nextLong()
             val engine = OpponentPicker(repository).pick(difficulty, seed)
-            val plan = withContext(Dispatchers.Default) { engine.plan(puzzleDeferred, seed) }
+            val plan = withContext(Dispatchers.Default) { engine.plan(puzzle, seed) }
+            showcase.join()
 
-            val steps = 20
-            repeat(steps) { i ->
-                delay(MATCHMAKING_MILLIS / steps)
-                _state.value = _state.value.copy(matchmakingProgress = (i + 1f) / steps)
-            }
-
-            // Les statistiques par niveau ne comptent que l'entraînement ;
-            // les duels ont leur propre bilan.
             repository.saveInProgress(null)
             _state.value = _state.value.copy(
                 screen = Screen.Game,
                 hasSavedGame = false,
-                session = GameSession(
-                    puzzle = puzzleDeferred,
-                    mode = GameMode.DUEL,
-                    opponent = plan
-                )
+                session = GameSession(puzzle = puzzle, mode = GameMode.DUEL, opponent = plan)
             )
             startTicker()
         }
@@ -145,7 +161,8 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
     }
 
     fun resumeSavedGame() {
-        viewModelScope.launch {
+        cancelPending()
+        startJob = viewModelScope.launch {
             val saved = repository.loadInProgress() ?: return@launch
             _state.value = _state.value.copy(
                 screen = Screen.Game,
@@ -155,6 +172,7 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                     entries = saved.entries,
                     notes = saved.notes,
                     mistakes = saved.mistakes,
+                    hintsLeft = saved.hintsLeft,
                     elapsedMillis = saved.elapsedMillis,
                     moveLog = saved.moveLog,
                     wrongCells = saved.entries.indices
@@ -190,6 +208,43 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
         val updated = current.block()
         _state.value = _state.value.copy(session = updated)
         if (!wasFinished && updated.finished) onGameFinished(updated)
+    }
+
+    // ---- Cycle de vie ----
+
+    /**
+     * L'application passe en arrière-plan. Une partie d'entraînement se met en
+     * pause ; un duel, lui, ne s'arrête pas — mais on cesse de battre la mesure
+     * pour rien et on rattrape le temps écoulé au retour.
+     */
+    fun onAppBackgrounded() {
+        stopTicker()
+        val session = _state.value.session ?: return
+        if (session.finished) return
+        if (session.mode == GameMode.TRAINING) {
+            pause()
+            saveProgress()
+        } else {
+            backgroundedAt = System.currentTimeMillis()
+        }
+    }
+
+    fun onAppForegrounded() {
+        val session = _state.value.session ?: return
+        if (session.finished || _state.value.screen != Screen.Game) return
+
+        if (session.mode == GameMode.DUEL && backgroundedAt != 0L) {
+            val away = System.currentTimeMillis() - backgroundedAt
+            backgroundedAt = 0L
+            val advanced = session.copy(elapsedMillis = session.elapsedMillis + away)
+                .withOpponentCheck()
+            _state.value = _state.value.copy(session = advanced)
+            if (advanced.finished) {
+                onGameFinished(advanced)
+                return
+            }
+        }
+        startTicker()
     }
 
     // ---- Horloge ----
@@ -261,6 +316,7 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
                     entries = session.entries,
                     notes = session.notes,
                     mistakes = session.mistakes,
+                    hintsLeft = session.hintsLeft,
                     elapsedMillis = session.elapsedMillis,
                     moveLog = session.moveLog
                 )
@@ -270,12 +326,14 @@ class GameViewModel(private val repository: GameRepository) : ViewModel() {
 
     override fun onCleared() {
         stopTicker()
+        cancelPending()
         super.onCleared()
     }
 
     companion object {
         private const val TICK_MILLIS = 250L
         private const val MATCHMAKING_MILLIS = 2_400L
+        private const val MATCHMAKING_STEPS = 20
 
         fun factory(repository: GameRepository) = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")

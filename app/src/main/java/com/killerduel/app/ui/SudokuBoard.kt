@@ -7,13 +7,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.Modifier
@@ -26,7 +26,13 @@ import com.killerduel.app.core.maskContains
 import com.killerduel.app.core.rowOf
 import com.killerduel.app.ui.theme.Palette
 
-/** Tout ce que la grille a besoin de savoir pour se dessiner. */
+/**
+ * Tout ce que la grille a besoin de savoir pour se dessiner.
+ *
+ * Déclaré immuable : sans cela, les listes en font un type instable pour Compose,
+ * qui redessinerait les 81 cases à chaque battement du chronomètre.
+ */
+@Immutable
 data class BoardState(
     val puzzle: Puzzle,
     val entries: List<Int>,
@@ -137,12 +143,6 @@ private fun DrawScope.drawGridLines(cell: Float) {
  */
 private fun DrawScope.drawCages(state: BoardState, cell: Float, paints: BoardPaints) {
     val inset = 3.5f * density
-    val stroke = Stroke(
-        width = 1.4f * density,
-        pathEffect = PathEffect.dashPathEffect(
-            floatArrayOf(3.5f * density, 3f * density), 0f
-        )
-    )
     val cages = state.puzzle.cageOfCell
 
     fun same(a: Int, b: Int) = b in 0..80 && cages[a] == cages[b]
@@ -170,10 +170,10 @@ private fun DrawScope.drawCages(state: BoardState, cell: Float, paints: BoardPai
         val ty = if (openUp) y0 else y0 + inset
         val by = if (openDown) y1 else y1 - inset
 
-        if (!openUp) drawSegment(Offset(lx, y0 + inset), Offset(rx, y0 + inset), stroke)
-        if (!openDown) drawSegment(Offset(lx, y1 - inset), Offset(rx, y1 - inset), stroke)
-        if (!openLeft) drawSegment(Offset(x0 + inset, ty), Offset(x0 + inset, by), stroke)
-        if (!openRight) drawSegment(Offset(x1 - inset, ty), Offset(x1 - inset, by), stroke)
+        if (!openUp) drawSegment(Offset(lx, y0 + inset), Offset(rx, y0 + inset), paints)
+        if (!openDown) drawSegment(Offset(lx, y1 - inset), Offset(rx, y1 - inset), paints)
+        if (!openLeft) drawSegment(Offset(x0 + inset, ty), Offset(x0 + inset, by), paints)
+        if (!openRight) drawSegment(Offset(x1 - inset, ty), Offset(x1 - inset, by), paints)
     }
 
     // Somme affichée dans la case la plus haute puis la plus à gauche de la cage.
@@ -185,13 +185,13 @@ private fun DrawScope.drawCages(state: BoardState, cell: Float, paints: BoardPai
     }
 }
 
-private fun DrawScope.drawSegment(from: Offset, to: Offset, stroke: Stroke) {
+private fun DrawScope.drawSegment(from: Offset, to: Offset, paints: BoardPaints) {
     drawLine(
         color = Palette.CageDash,
         start = from,
         end = to,
-        strokeWidth = stroke.width,
-        pathEffect = stroke.pathEffect
+        strokeWidth = paints.cageWidth,
+        pathEffect = paints.cageDash
     )
 }
 
@@ -262,8 +262,17 @@ private fun drawNotes(
     }
 }
 
-/** Peintures natives réutilisées d'une frame à l'autre : mesurer 81 textes coûte. */
+/**
+ * Peintures et effets de trait construits une fois pour toutes : mesurer 81 textes
+ * et refabriquer un pointillé à chaque frame coûte pour un rendu identique.
+ */
 private class BoardPaints(density: Float) {
+
+    val cageWidth = 1.4f * density
+    val cageDash: PathEffect = PathEffect.dashPathEffect(
+        floatArrayOf(3.5f * density, 3f * density), 0f
+    )
+
     private fun basePaint(color: Color, style: Int) = Paint().apply {
         isAntiAlias = true
         textAlign = Paint.Align.CENTER

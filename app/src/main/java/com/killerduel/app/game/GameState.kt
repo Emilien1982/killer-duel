@@ -58,9 +58,12 @@ data class GameSession(
     val opponentFilled: Int
         get() = opponent?.let { it.filledAt(elapsedMillis) + puzzle.givens.count { g -> g != 0 } } ?: 0
 
-    /** Un chiffre déjà placé neuf fois n'a plus à être proposé. */
+    /**
+     * Un chiffre correctement placé neuf fois n'a plus à être proposé. Les
+     * chiffres faux ne comptent pas : ils condamneraient une touche encore utile.
+     */
     fun isDigitExhausted(digit: Int): Boolean =
-        (0 until 81).count { valueAt(it) == digit } >= 9
+        (0 until 81).count { valueAt(it) == digit && puzzle.solution[it] == digit } >= 9
 
     fun valueAt(cell: Int): Int =
         if (puzzle.givens[cell] != 0) puzzle.givens[cell] else entries[cell]
@@ -147,6 +150,7 @@ fun GameSession.withErase(): GameSession {
 }
 
 fun GameSession.withUndo(): GameSession {
+    if (finished || paused) return this
     val previous = history.lastOrNull() ?: return this
     return copy(
         entries = previous.entries,

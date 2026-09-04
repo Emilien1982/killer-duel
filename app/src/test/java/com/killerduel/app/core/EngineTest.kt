@@ -81,9 +81,15 @@ class EngineTest {
 
     @Test
     fun `killer level gives nothing away`() {
-        val puzzle = PuzzleGenerator.generate(Difficulty.KILLER, seed = 4242L)
-        assertTrue("aucun chiffre donné attendu", puzzle.givens.all { it == 0 })
-        assertTrue("aucune cage d'une case", puzzle.cages.none { it.size == 1 })
+        // Une seule grille ne prouverait rien : le contrat doit tenir sur la durée.
+        for (seed in 1000L until 1030L) {
+            val puzzle = PuzzleGenerator.generate(Difficulty.KILLER, seed)
+            assertTrue(
+                "seed $seed : ${puzzle.givens.count { it != 0 }} chiffres donnés",
+                puzzle.givens.all { it == 0 }
+            )
+            assertTrue("seed $seed : cage d'une case", puzzle.cages.none { it.size == 1 })
+        }
     }
 
     private fun assertCoversGrid(puzzle: Puzzle) {
