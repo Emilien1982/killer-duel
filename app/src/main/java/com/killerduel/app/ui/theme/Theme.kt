@@ -45,6 +45,8 @@ data class AppPalette(
     val CageTints: List<Color>,
     val CageSeparator: Color,
     val NoteHighlight: Color,
+    /** Couleur de police du chiffre mis en avant, chiffres comme notes. */
+    val FocusInk: Color,
     val isDark: Boolean
 )
 
@@ -64,7 +66,7 @@ val LightPalette = AppPalette(
     Error = Color(0xFFD93A3F),
     ErrorBackground = Color(0xFFFBE0E0),
     Note = Color(0xFF7C838C),
-    CageSum = Color(0xFF4A4F57),
+    CageSum = Color(0xFF1B4F86),
     TextPrimary = Color(0xFF20242A),
     TextMuted = Color(0xFF8A8F98),
     Accent = Color(0xFF1A73E8),
@@ -79,6 +81,9 @@ val LightPalette = AppPalette(
     // La frontière fait le gros du travail ; la teinte ne fait que la confirmer.
     CageSeparator = Color(0xFFC2C7CE),
     NoteHighlight = Color(0xFFA9C8F0),
+    // Ni le noir des chiffres donnés, ni le bleu des saisies, ni le rouge des
+    // erreurs : une teinte qui n'appartient qu'à la mise en avant.
+    FocusInk = Color(0xFF9B1FA0),
     isDark = false
 )
 
@@ -98,6 +103,8 @@ val CreamPalette = LightPalette.copy(
     ),
     CageSeparator = Color(0xFFC9BDA2),
     NoteHighlight = Color(0xFFDCC189),
+    CageSum = Color(0xFF7A4A12),
+    FocusInk = Color(0xFF9B1FA0),
     isDark = false
 )
 
@@ -117,7 +124,7 @@ val DarkPalette = AppPalette(
     Error = Color(0xFFF06A6E),
     ErrorBackground = Color(0xFF4A2427),
     Note = Color(0xFF949AA3),
-    CageSum = Color(0xFFB6BCC4),
+    CageSum = Color(0xFF7FB3F0),
     TextPrimary = Color(0xFFE8EAED),
     TextMuted = Color(0xFF9AA0A8),
     Accent = Color(0xFF74A9F5),
@@ -131,6 +138,7 @@ val DarkPalette = AppPalette(
     ),
     CageSeparator = Color(0xFF4A5059),
     NoteHighlight = Color(0xFF3D5F8F),
+    FocusInk = Color(0xFFE99BF0),
     isDark = true
 )
 

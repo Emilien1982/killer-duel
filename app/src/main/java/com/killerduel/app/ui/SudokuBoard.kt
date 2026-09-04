@@ -4,8 +4,6 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
@@ -74,8 +72,6 @@ fun SudokuBoard(
 
     Canvas(
         modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
             .pointerInput(Unit) {
                 detectTapGestures { offset ->
                     val cellSize = size.width / 9f
@@ -125,12 +121,11 @@ private fun DrawScope.drawCells(state: BoardState, cell: Float, palette: AppPale
         // pleines, identiques d'une case à l'autre.
         val peer = settings.highlightRegions && selected in 0..80 &&
             (rowOf(c) == row || colOf(c) == col || boxOf(c) == box)
-        val sameDigit = settings.highlightSameNumbers && focus != 0 && state.valueAt(c) == focus
-
+        // Le chiffre mis en avant se signale par son encre, pas par un fond :
+        // deux signaux pour la même information brouillaient la lecture.
         color = when {
             c == selected -> palette.Selected
             c in state.wrongCells -> palette.ErrorBackground
-            sameDigit -> palette.SameValue
             peer -> color.over(palette.PeerHighlight)
             else -> color
         }
@@ -225,6 +220,9 @@ private fun DrawScope.drawGridLines(cell: Float, palette: AppPalette) {
 private fun DrawScope.drawCageSums(state: BoardState, cell: Float, paints: BoardPaints) {
     val inset = 3.5f * density
     val canvas = drawContext.canvas.nativeCanvas
+    // Une taille figée en dp devient minuscule sur une grande grille : la somme
+    // suit la case, comme le fait déjà le chiffre.
+    paints.cageSum.textSize = cell * 0.25f
     state.puzzle.cages.forEach { cage ->
         val anchor = cage.anchor
         val x = colOf(anchor) * cell + inset + 2f * density
@@ -257,7 +255,7 @@ private fun DrawScope.drawContents(state: BoardState, cell: Float, paints: Board
             val paint = when {
                 c in state.wrongCells -> paints.wrong
                 state.revealSolution && entry == 0 -> paints.revealed
-                focused && given == 0 -> paints.entryFocused
+                focused -> paints.focused
                 given != 0 -> paints.given
                 else -> paints.entry
             }
@@ -305,17 +303,8 @@ private fun DrawScope.drawNotes(
         val cx = left + (i % 3) * stepX + stepX / 2f
         val cy = top + topInset + (i / 3) * stepY + stepY / 2f
 
-        if (d == focus) {
-            val w = stepX * 0.78f
-            val h = stepY * 0.82f
-            drawRoundRect(
-                color = palette.NoteHighlight,
-                topLeft = Offset(cx - w / 2f, cy - h / 2f),
-                size = Size(w, h),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * density)
-            )
-        }
-
+        // La note du chiffre mis en avant change d'encre, comme les chiffres :
+        // une pastille de fond se confondait avec les teintes de cages.
         val paint = if (d == focus) paints.noteFocused else paints.note
         paint.textSize = paints.note.textSize
         canvas.drawText(d.toString(), cx, cy - (paint.ascent() + paint.descent()) / 2f, paint)
@@ -364,9 +353,9 @@ private class BoardPaints(density: Float, palette: AppPalette) {
     val entry = basePaint(palette.Entry, Typeface.NORMAL)
     val wrong = basePaint(palette.Error, Typeface.BOLD)
     val revealed = basePaint(palette.Success, Typeface.NORMAL)
-    val entryFocused = basePaint(palette.Entry, Typeface.BOLD)
+    val focused = basePaint(palette.FocusInk, Typeface.BOLD)
     val note = basePaint(palette.Note, Typeface.NORMAL)
-    val noteFocused = basePaint(palette.Given, Typeface.BOLD)
+    val noteFocused = basePaint(palette.FocusInk, Typeface.BOLD)
     val cageSum = basePaint(palette.CageSum, Typeface.BOLD).apply {
         textAlign = Paint.Align.LEFT
         textSize = 10f * density

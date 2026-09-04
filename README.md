@@ -53,6 +53,14 @@ changement de mois, le niveau repart de sa moitié : atteindre cent laisse
 cinquante au mois suivant. Ce qui a été gagné compte encore, sans que le
 compteur se fige au plafond.
 
+## Tailles d'écran
+
+L'application est verrouillée en portrait, y compris sur tablette. La grille
+prend le plus grand carré qui tient dans la place restante, plafonné à 620 dp :
+elle se réduit d'elle-même sur un petit téléphone plutôt que de pousser les
+commandes hors de l'écran, et ne s'étire pas jusqu'à l'absurde sur une tablette.
+Vérifié sur 360×640, 411×914 et 1067×1707 dp.
+
 ## Réglages
 
 Chronomètre · limite d'erreurs · chiffre d'abord · chiffres restants · cages

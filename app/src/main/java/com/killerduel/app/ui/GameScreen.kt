@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -89,25 +90,32 @@ fun GameScreen(
                 DuelBanner(session)
             }
 
-            Spacer(Modifier.weight(0.4f))
-
-            SudokuBoard(
-                state = BoardState(
-                    puzzle = session.puzzle,
-                    entries = session.entries,
-                    notes = session.notes,
-                    selected = session.selected,
-                    wrongCells = session.wrongCells,
-                    settings = session.settings,
-                    activeDigit = session.activeDigit
-                ),
-                onCellTap = onCell,
+            // La grille prend le plus grand carré qui tient dans la place
+            // restante, plafonné pour ne pas devenir démesurée sur tablette.
+            BoxWithConstraints(
                 modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .alpha(if (session.paused) 0f else 1f)
-            )
-
-            Spacer(Modifier.weight(0.8f))
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val side = minOf(maxWidth, maxHeight, MAX_BOARD_SIDE)
+                SudokuBoard(
+                    state = BoardState(
+                        puzzle = session.puzzle,
+                        entries = session.entries,
+                        notes = session.notes,
+                        selected = session.selected,
+                        wrongCells = session.wrongCells,
+                        settings = session.settings,
+                        activeDigit = session.activeDigit
+                    ),
+                    onCellTap = onCell,
+                    modifier = Modifier
+                        .size(side)
+                        .alpha(if (session.paused) 0f else 1f)
+                )
+            }
 
             ActionRow(
                 pencil = session.pencil,
@@ -119,7 +127,7 @@ fun GameScreen(
                 onHint = onHint
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
 
             NumberPad(
                 remaining = { session.remainingCount(it) },
@@ -129,11 +137,11 @@ fun GameScreen(
                 modifier = Modifier.padding(horizontal = 10.dp)
             )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
             DigitFirstSwitch(checked = session.settings.digitFirst, onToggle = onToggleDigitFirst)
 
-            Spacer(Modifier.weight(0.7f))
+            Spacer(Modifier.height(14.dp))
         }
 
         if (session.paused && !session.finished) {
@@ -435,6 +443,9 @@ private fun DigitFirstSwitch(checked: Boolean, onToggle: () -> Unit) {
         )
     }
 }
+
+/** Au-delà, la grille cesse d'être confortable et devient une affiche. */
+private val MAX_BOARD_SIDE = 620.dp
 
 fun formatDuration(millis: Long): String {
     val totalSeconds = millis / 1000
