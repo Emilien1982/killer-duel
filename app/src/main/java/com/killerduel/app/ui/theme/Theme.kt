@@ -82,8 +82,9 @@ val LightPalette = AppPalette(
     CageSeparator = Color(0xFFC2C7CE),
     NoteHighlight = Color(0xFFA9C8F0),
     // Ni le noir des chiffres donnés, ni le bleu des saisies, ni le rouge des
-    // erreurs : une teinte qui n'appartient qu'à la mise en avant.
-    FocusInk = Color(0xFF9B1FA0),
+    // erreurs. Le magenta violacé d'abord essayé se lisait comme un rouge sur
+    // écran AMOLED : ce rose s'en éloigne franchement.
+    FocusInk = Color(0xFFE5289B),
     isDark = false
 )
 
@@ -104,7 +105,7 @@ val CreamPalette = LightPalette.copy(
     CageSeparator = Color(0xFFC9BDA2),
     NoteHighlight = Color(0xFFDCC189),
     CageSum = Color(0xFF7A4A12),
-    FocusInk = Color(0xFF9B1FA0),
+    FocusInk = Color(0xFFD4187F),
     isDark = false
 )
 
@@ -138,7 +139,7 @@ val DarkPalette = AppPalette(
     ),
     CageSeparator = Color(0xFF4A5059),
     NoteHighlight = Color(0xFF3D5F8F),
-    FocusInk = Color(0xFFE99BF0),
+    FocusInk = Color(0xFFFF7FC4),
     isDark = true
 )
 

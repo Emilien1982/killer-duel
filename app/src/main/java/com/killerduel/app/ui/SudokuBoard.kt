@@ -293,7 +293,8 @@ private fun DrawScope.drawNotes(
     val topInset = if (avoidCageSum) cell * 0.22f else 0f
     val stepX = cell / 3f
     val stepY = (cell - topInset) / 3f
-    paints.note.textSize = if (avoidCageSum) cell * 0.22f else cell * 0.26f
+    val noteSize = if (avoidCageSum) cell * 0.22f else cell * 0.26f
+    paints.note.textSize = noteSize
 
     val focus = if (state.settings.highlightSameNumbers) state.focusDigit else 0
 
@@ -304,9 +305,11 @@ private fun DrawScope.drawNotes(
         val cy = top + topInset + (i / 3) * stepY + stepY / 2f
 
         // La note du chiffre mis en avant change d'encre, comme les chiffres :
-        // une pastille de fond se confondait avec les teintes de cages.
-        val paint = if (d == focus) paints.noteFocused else paints.note
-        paint.textSize = paints.note.textSize
+        // une pastille de fond se confondait avec les teintes de cages. Elle
+        // grossit aussi un peu, la graisse seule se voyant mal à cette taille.
+        val focusedNote = d == focus
+        val paint = if (focusedNote) paints.noteFocused else paints.note
+        paint.textSize = if (focusedNote) noteSize * 1.18f else noteSize
         canvas.drawText(d.toString(), cx, cy - (paint.ascent() + paint.descent()) / 2f, paint)
     }
 }
@@ -349,13 +352,28 @@ private class BoardPaints(density: Float, palette: AppPalette) {
         typeface = Typeface.create(Typeface.SANS_SERIF, style)
     }
 
+    /**
+     * Le chiffre mis en avant porte la graisse la plus lourde disponible : c'est
+     * ce qui doit se lire d'un coup d'œil, avant même la couleur.
+     */
+    private fun heaviestPaint(color: Color) = Paint().apply {
+        isAntiAlias = true
+        textAlign = Paint.Align.CENTER
+        this.color = color.toArgb()
+        typeface = if (android.os.Build.VERSION.SDK_INT >= 28) {
+            Typeface.create(Typeface.SANS_SERIF, 900, false)
+        } else {
+            Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+    }
+
     val given = basePaint(palette.Given, Typeface.BOLD)
     val entry = basePaint(palette.Entry, Typeface.NORMAL)
     val wrong = basePaint(palette.Error, Typeface.BOLD)
     val revealed = basePaint(palette.Success, Typeface.NORMAL)
-    val focused = basePaint(palette.FocusInk, Typeface.BOLD)
+    val focused = heaviestPaint(palette.FocusInk)
     val note = basePaint(palette.Note, Typeface.NORMAL)
-    val noteFocused = basePaint(palette.FocusInk, Typeface.BOLD)
+    val noteFocused = heaviestPaint(palette.FocusInk)
     val cageSum = basePaint(palette.CageSum, Typeface.BOLD).apply {
         textAlign = Paint.Align.LEFT
         textSize = 10f * density
